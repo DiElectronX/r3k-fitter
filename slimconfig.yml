@@ -1,0 +1,35 @@
+#File Location
+File:
+  MC:
+    JPSI: "/vols/cms/jo3717/FINAL2022PRELIMINARYANALYSIS_01_2024/PrelimRKanalysis/input/MC/JPSI_presel_MC_.root"
+    KEE: "/vols/cms/jo3717/FINAL2022PRELIMINARYANALYSIS_01_2024/PrelimRKanalysis/input/MC/KEE_presel_MC_.root"
+    PSI2S: "/vols/cms/jo3717/FINAL2022PRELIMINARYANALYSIS_01_2024/PrelimRKanalysis/input/MC/PSI2S_presel_MC_.root"
+  DATA:
+    JPSI: "/vols/cms/jo3717/FINAL2022PRELIMINARYANALYSIS_01_2024/PrelimRKanalysis/input/DATA/completedata2022_noah_cut_2p0.root"
+    KEE:  "/vols/cms/jo3717/FINAL2022PRELIMINARYANALYSIS_01_2024/PrelimRKanalysis/input/DATA/completedata2022_noah_cut_2p0.root"
+    PSI2S:  "/vols/cms/jo3717/FINAL2022PRELIMINARYANALYSIS_01_2024/PrelimRKanalysis/input/DATA/completedata2022_noah_cut_2p0.root"
+
+
+Cuts:
+    BDT_CUT: 5.36
+  
+Import_Branches:
+  hlt_seeds: ['HLT_DoubleEle10_eta1p22_mMax6', 'HLT_DoubleEle9p5_eta1p22_mMax6', 'HLT_DoubleEle9_eta1p22_mMax6', 'HLT_DoubleEle8p5_eta1p22_mMax6', 'HLT_DoubleEle8_eta1p22_mMax6', 'HLT_DoubleEle7p5_eta1p22_mMax6', 
+  'HLT_DoubleEle7_eta1p22_mMax6', 'HLT_DoubleEle6p5_eta1p22_mMax6', 'HLT_DoubleEle6_eta1p22_mMax6', 'HLT_DoubleEle5p5_eta1p22_mMax6', 'HLT_DoubleEle5_eta1p22_mMax6', 'HLT_DoubleEle4p5_eta1p22_mMax6',
+  'HLT_DoubleEle4_eta1p22_mMax6',]
+
+  l1_seeds: ['L1_DoubleEG11_er1p2_dR_Max0p6', 'L1_DoubleEG10p5_er1p2_dR_Max0p6', 'L1_DoubleEG10_er1p2_dR_Max0p6', 'L1_DoubleEG9p5_er1p2_dR_Max0p6', 'L1_DoubleEG9_er1p2_dR_Max0p7', 'L1_DoubleEG8p5_er1p2_dR_Max0p7', 'L1_DoubleEG8_er1p2_dR_Max0p7', 
+            'L1_DoubleEG7p5_er1p2_dR_Max0p7', 'L1_DoubleEG7_er1p2_dR_Max0p8', 'L1_DoubleEG6p5_er1p2_dR_Max0p8', 'L1_DoubleEG6_er1p2_dR_Max0p8', 'L1_DoubleEG5p5_er1p2_dR_Max0p8', 
+            'L1_DoubleEG5_er1p2_dR_Max0p9', 'L1_DoubleEG4p5_er1p2_dR_Max0p9', 'L1_DoubleEG4_er1p2_dR_Max0p9']
+
+  trigger_list: [
+  'L1_4p5_HLT_4p0', 'L1_5p0_HLT_4p0', 'L1_5p5_HLT_4p0', 'L1_5p5_HLT_6p0', 'L1_6p0_HLT_4p0', 'L1_6p5_HLT_4p5',
+  'L1_7p0_HLT_5p0', 'L1_7p5_HLT_5p0', 'L1_8p0_HLT_5p0', 'L1_8p5_HLT_5p0', 'L1_8p5_HLT_5p5', 'L1_9p0_HLT_6p0',
+  'L1_10p5_HLT_5p0', 'L1_10p5_HLT_6p5', 'L1_11p0_HLT_6p5', 'trigger_OR',
+  ]
+
+  branches: ['Noah_BDT_baseline','BToKEE_mll_fullfit','BToKEE_fit_mass','trig_wgt','BToKEE_D0_mass_LepToPi_KToK','BToKEE_D0_mass_LepToK_KToPi','run','luminosityBlock']
+
+
+
+  
