@@ -4,6 +4,8 @@
 
 ### Setting Up
 Based on recommendations from Combine documentation, use slc7 Singularity/Apptainer along with CMSSW_11_3_X and Combine v9
+
+[note: to use additional fit shapes, we merge changes from an open PR to HiggsCombine, this will be deprecated when the PR is merged into a recommended release]
 ```
 cmssw-el7
 cmsrel CMSSW_11_3_4
@@ -15,6 +17,9 @@ cd HiggsAnalysis/CombinedLimit
 cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
 git fetch origin
 git checkout v9.0.0
+
+git fetch origin pull/843/head
+git checkout -b r3k_modified FETCH_HEAD
 
 cd $CMSSW_BASE/src/
 bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/main/CombineTools/scripts/sparse-checkout-https.sh)
