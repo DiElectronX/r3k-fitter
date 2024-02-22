@@ -1,9 +1,11 @@
 # Fit Code for CMS Run 3 RK Analysis
 
-### Setting Up
+## Setting Up
 Based on recommendations from Combine documentation, use slc7 Singularity/Apptainer along with CMSSW_11_3_X and Combine v9
 
 note: to use additional fit shapes, we merge changes from an open PR to HiggsCombine, this will be deprecated when the PR is merged into a recommended release
+
+### Building Environment (First-Time Setup)
 ```
 cmssw-el7
 cmsrel CMSSW_11_3_4
@@ -29,7 +31,14 @@ git clone git@github.com:DiElectronX/r3k-fitter.git
 cd $CMSSW_BASE/src/r3k-fitter
 ```
 
-### Plotting
+### Loading Environment (When Logging In)
+```
+cd .../r3k-fitter
+cmssw-el7
+cmsenv
+```
+
+## Plotting
 
 Use following script to show results pre- and post- combine ML fit to data
 ```
