@@ -13,7 +13,7 @@ plot = w.var("Bmass").frame()
 w.data("data_obs").plotOn( plot, binning )
 
 # Load the S+B model
-sb_model = w.pdf("model_s").getPdf("bin1")
+sb_model = w.pdf("model_s").getPdf("jpsi_region")
 
 # Prefit
 sb_model.plotOn( plot, ROOT.RooFit.LineColor(2), ROOT.RooFit.Name("prefit") )
