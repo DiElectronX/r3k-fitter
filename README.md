@@ -27,31 +27,15 @@ bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/m
 scramv1 b clean; scramv1 b
 cmsenv
 
-git clone -b combine git@github.com:DiElectronX/r3k-fitter.git
+git clone git@github.com:DiElectronX/r3k-fitter.git
 cd $CMSSW_BASE/src/r3k-fitter
-```
-
-### Steps for Simple ML Fits
-
-(same steps can be followed for "_binned" version)
-
-1. Generate Fit to data with Roofit & save PDFs + RooDataSet to RooWorkspace in ROOT file
-```
-python simple_fit.py
-```
-2. Using Combine datacard with shapes linked to RooWorkspace objects, convert `.txt` datacard into Combine Workspace
-```
-text2workspace.py datacard_shapes_simple.txt
-```
-3. Run Combine maximum likelihood fit with generated workspace datacard
-```
-combine -M MultiDimFit datacard_shapes_simple.root --saveWorkspace
 ```
 
 ### Plotting
 
 Use following script to show results pre- and post- combine ML fit to data
 ```
-python plotBeforeAndAfterMLFit.py <combine ML fit output>
+python plotBeforeAndAfterMLFit.py <combine MultiDimFit fit output>
 ```
-note: must `--saveWorkspace` to save objects for this plot script
+note 1: may have to edit bin/channel name in script
+note 2: must `--saveWorkspace` to save objects for this plot script
