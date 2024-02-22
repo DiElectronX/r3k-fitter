@@ -1,7 +1,5 @@
 # Fit Code for CMS Run 3 RK Analysis
 
-## Basic Combine templates for working ML fit code
-
 ### Setting Up
 Based on recommendations from Combine documentation, use slc7 Singularity/Apptainer along with CMSSW_11_3_X and Combine v9
 
