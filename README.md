@@ -3,7 +3,7 @@
 ### Setting Up
 Based on recommendations from Combine documentation, use slc7 Singularity/Apptainer along with CMSSW_11_3_X and Combine v9
 
-[note: to use additional fit shapes, we merge changes from an open PR to HiggsCombine, this will be deprecated when the PR is merged into a recommended release]
+note: to use additional fit shapes, we merge changes from an open PR to HiggsCombine, this will be deprecated when the PR is merged into a recommended release
 ```
 cmssw-el7
 cmsrel CMSSW_11_3_4
