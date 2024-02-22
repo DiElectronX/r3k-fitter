@@ -27,7 +27,7 @@ bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/m
 scramv1 b clean; scramv1 b
 cmsenv
 
-git clone -b combine_template git@github.com:DiElectronX/r3k-fitter.git
+git clone -b combine git@github.com:DiElectronX/r3k-fitter.git
 cd $CMSSW_BASE/src/r3k-fitter
 ```
 
