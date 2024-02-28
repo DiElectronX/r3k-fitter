@@ -37,12 +37,33 @@ cd .../r3k-fitter
 cmssw-el7
 cmsenv
 ```
+## Initial Fitting Code
+
+Use following script to perform simplified fits in RooFit 
+```
+python do_plot.py -m <mode> [-v] [-lc]
+```
+The mode flag is currently configured for unblinded fits in the jpsi and psi2s regions, so the only accepted arguments are `jpsi` or `psi2s`. The optional `-v` flag handles verbosity if output in the terminal from Root and RooFit is desired. The optional `-lc` flag directs the script to load fit templates from step 1 & 2 of the script directly from cached files, jumping directly to the final step 3 fit if such templates exist. All other parameters are stored in the `fit_cfg.yml` configuration file.
+
+## Running Initial Fits Through Combine
+
+### Generate .txt Datacard
+No real instruction here yet, just ensure that you are loading in the specified shapes from the previous step's RooWorkspace. `datacard_psi2s_simple.txt` is a functional template.
+
+### Process .root Datacard
+```
+text2workspace.py datacard.txt
+```
+
+### Run Combine MultiDimFit
+```
+combine -M MultiDimFit datacard.root --saveWorkspace -n <fit output file label>
+```
 
 ## Plotting
 
-Use following script to show results pre- and post- combine ML fit to data
+Use following script to show results for combine ML fit to data
 ```
-python plotBeforeAndAfterMLFit.py <combine MultiDimFit fit output>
+combine -M FitDiagnostics --plots --signalPdfNames='*sig*' --backgroundPdfNames='*bkg*' <combine MultiDimFit fit output>
 ```
-note 1: may have to edit bin/channel name in script
-note 2: must `--saveWorkspace` to save objects for this plot script
+note: must have used `--saveWorkspace` flag in previous step to save objects for this script
