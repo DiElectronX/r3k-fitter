@@ -2,9 +2,9 @@ imax    * number of bins
 jmax    * number of processes minus 1
 kmax    * number of nuisance parameters
 --------------------------------------------------------------------------------
-shapes sig      psi2s_region fitter_outputs/workspace_psi2s.root workspace:cb_pdf
-shapes comb_bkg psi2s_region fitter_outputs/workspace_psi2s.root workspace:expo_pdf
-shapes part_bkg psi2s_region fitter_outputs/workspace_psi2s.root workspace:generic_pdf
+shapes sig      psi2s_region fitter_outputs/workspace_psi2s.root workspace:sig_pdf
+shapes comb_bkg psi2s_region fitter_outputs/workspace_psi2s.root workspace:comb_bkg_pdf
+shapes part_bkg psi2s_region fitter_outputs/workspace_psi2s.root workspace:part_bkg_pdf
 shapes data_obs psi2s_region fitter_outputs/workspace_psi2s.root workspace:dataset_data
 --------------------------------------------------------------------------------
 bin          psi2s_region
