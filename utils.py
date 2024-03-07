@@ -62,8 +62,15 @@ def prepare_inputs(dataset_params, fit_params, isData=True):
     bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
     b_mass_branch.setRange('full', *fit_params.full_mass_range)
-    variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-    dataset = ROOT.RooDataSet('dataset_data' if isData else 'dataset_mc', 'Dataset', tree, variables)
+
+    if isData:
+        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
+        dataset = ROOT.RooDataSet('dataset_data' if isData else 'dataset_mc', 'Dataset', tree, variables)
+    else:
+        weight_branch = ROOT.RooRealVar(dataset_params.mc_weight_branch, 'Weight', -100., 100.)
+        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
+        dataset = ROOT.RooDataSet('dataset_data' if isData else 'dataset_mc', 'Dataset', tree, variables, weight_branch.GetName())
+
     cutstring = '{}>4.0&&{}>{}&&{}<{}'.format(
         dataset_params.score_branch,
         dataset_params.ll_mass_branch,

@@ -49,7 +49,7 @@ def do_fit(dataset_params, output_params, fit_params, args):
 
         # Import ROOT file dataset
         b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
-
+    '''
         # Build Roofit model for signal + exponential background
         model_pt2 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
         model_pt2.build_signal_model('cb+gauss', b_mass_branch, template, let_float=False)
@@ -79,7 +79,7 @@ def do_fit(dataset_params, output_params, fit_params, args):
 
         # Save fit shape parameters
         template = save_params(params, fit_params, output_params, args)
-
+    '''
     # Part 3 - Add partial background shape to simplified fit
     if args.verbose:
         print('\nStarting Fit 3 - Final Double-Background Model\n{}'.format(50*'~'))
@@ -95,7 +95,7 @@ def do_fit(dataset_params, output_params, fit_params, args):
     # Build Roofit model for signal + 2-shape background
     model_pt3 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
     model_pt3.build_signal_model('cb+gauss', b_mass_branch, template, let_float=False)
-    model_pt3.add_background_model('comb_bkg_pdf', 'exp', b_mass_branch, template, let_float=False)
+    model_pt3.add_background_model('comb_bkg_pdf', 'exp', b_mass_branch, fit_params.fit_defaults, let_float=True)
     model_pt3.add_background_model('part_bkg_pdf', 'generic', b_mass_branch, fit_params.fit_defaults, let_float=True)
 
     sig_coeff = ROOT.RooRealVar('sig_coeff', 'Signal PDF Coefficient', 0.8, 0.0, 1.0)

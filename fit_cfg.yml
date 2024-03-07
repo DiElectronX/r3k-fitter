@@ -7,6 +7,7 @@ datasets:
   b_mass_branch: Bmass
   ll_mass_branch: Mll
   score_branch: xgb
+  mc_weight_branch: trig_wgt
 
 output:
   output_dir: fitter_outputs/
@@ -25,9 +26,9 @@ fit:
         gauss_mean:      [5.2, 5.1, 5.3]
         gauss_sigma:     [0.05, 0.01, 0.5]
         exp_slope:       [-2., -5., 0.]
-        part_exp_slope:  [3.8, 3.0, 5.0]
+        part_exp_slope:  [5., 4.0, 10.]
         erfc_mean:       [5., 4.95, 5.05]
-        erfc_sigma:      [0.04, 0.03, 0.06]
+        erfc_sigma:      [0.03, 0.01, 0.06]
     psi2s:
       ll_mass_range: [3.55, 3.8]
       defaults:
@@ -38,9 +39,9 @@ fit:
         gauss_mean:      [5.2, 5.1, 5.3]
         gauss_sigma:     [0.05, 0.01, 0.5]
         exp_slope:       [-0.5, -100., 0.]
-        part_exp_slope:  [3.8, 3.0, 5.0]
-        erfc_mean:       [5.05, 5., 5.1]
-        erfc_sigma:      [0.04, 0.03, 0.06]
+        part_exp_slope:  [5., 4., 10.]
+        erfc_mean:       [5.08, 5.05, 5.15]
+        erfc_sigma:      [0.03, 0.01, 0.06]
     rare:
       ll_mass_range: [1.05, 2.45]
       defaults:
