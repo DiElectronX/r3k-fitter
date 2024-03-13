@@ -1,4 +1,3 @@
-import os
 import ROOT
 import yaml
 import argparse
@@ -6,7 +5,7 @@ from utils import *
 from fit_models import Model
 
 
-def do_fit(dataset_params, output_params, fit_params, args):
+def do_fit(dataset_params, output_params, fit_params, args, write=True, get_yield=False):
     printlevel = set_verbosity(args)
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
@@ -15,7 +14,7 @@ def do_fit(dataset_params, output_params, fit_params, args):
     if not args.cache:
         if args.verbose:
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
-        
+
         # Import ROOT file dataset
         b_mass_branch, dataset_mc = prepare_inputs(dataset_params, fit_params, isData=False)
 
@@ -27,12 +26,11 @@ def do_fit(dataset_params, output_params, fit_params, args):
         # Fit model to data
         model_pt1.fit_result = model_pt1.signal_model.fitTo(dataset_mc, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
         params = model_pt1.fit_result.floatParsFinal()
-        
         # Plot fit result
         model_pt1.plot_fit(
             b_mass_branch,
             dataset_mc,
-            os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt1_sig_template.png'),
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt1_sig_template.pdf'),
             fit_components = [
                 model_pt1.cb_pdf,
                 model_pt1.gauss_pdf,
@@ -42,25 +40,18 @@ def do_fit(dataset_params, output_params, fit_params, args):
         # Save fit shape parameters
         template = save_params(params, fit_params, output_params, args)
 
-    # Part 2 - Use template to fit signal + exponential in data
+    # Part 2 - Use template to exponential in same-sign electron data
     if not args.cache:
         if args.verbose:
             print('\nStarting Fit 2 - Single-Background Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
-    '''
-        # Build Roofit model for signal + exponential background
-        model_pt2 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
-        model_pt2.build_signal_model('cb+gauss', b_mass_branch, template, let_float=False)
-        model_pt2.add_background_model('comb_bkg_pdf', 'exp', b_mass_branch, fit_params.fit_defaults, let_float=True)
+        b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesignelectrons_data_file, score_cut=None)
 
-        sig_coeff = ROOT.RooRealVar('sig_coeff', 'CB+Gaussian Coefficient', 0.5, 0.0, 1.0)
-        comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff', 'Exponential Coefficient', 0.5,0.0, 1.0)
-        model_pt2.fit_model = ROOT.RooAddPdf('pdf_sum_pt2', 'Sum of Gaussian and Exponential',
-                                 ROOT.RooArgList(model_pt2.signal_model, model_pt2.background_models['comb_bkg_pdf']),
-                                 ROOT.RooArgList(sig_coeff, comb_bkg_coeff)
-        )
+        # Build Roofit model for exponential background
+        model_pt2 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
+        model_pt2.add_background_model('comb_bkg_pdf', 'exp', b_mass_branch, fit_params.fit_defaults, let_float=True)
+        model_pt2.fit_model = model_pt2.background_models['comb_bkg_pdf']
 
         # Fit model to data
         model_pt2.fit_result = model_pt2.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
@@ -70,16 +61,15 @@ def do_fit(dataset_params, output_params, fit_params, args):
         model_pt2.plot_fit(
             b_mass_branch,
             dataset_data,
-            os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt2_exp_template.png'),
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt2_exp_template.pdf'),
             fit_components = [
-                model_pt2.signal_model,
                 model_pt2.background_models['comb_bkg_pdf'],
             ],
         )
 
         # Save fit shape parameters
         template = save_params(params, fit_params, output_params, args)
-    '''
+
     # Part 3 - Add partial background shape to simplified fit
     if args.verbose:
         print('\nStarting Fit 3 - Final Double-Background Model\n{}'.format(50*'~'))
@@ -89,8 +79,8 @@ def do_fit(dataset_params, output_params, fit_params, args):
         with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), 'r') as file:
             template = yaml.safe_load(file)
 
-        # Import ROOT file dataset
-        b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
+    # Import ROOT file dataset
+    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
 
     # Build Roofit model for signal + 2-shape background
     model_pt3 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
@@ -106,15 +96,23 @@ def do_fit(dataset_params, output_params, fit_params, args):
                                    ROOT.RooArgList(sig_coeff, comb_bkg_coeff, part_bkg_coeff)
     )
 
+    # Add gaussian contraint to fit parameters
+    model_pt3.constraints.update({
+        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_pt3.exp_slope,ROOT.RooFit.RooConst(template['exp_slope']), ROOT.RooFit.RooConst(0.1))
+    })
+
     # Fit model to data
-    model_pt3.fit_result = model_pt3.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
+    if model_pt3.constraints:
+        model_pt3.fit_result = model_pt3.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*model_pt3.constraints.values())), ROOT.RooFit.Range('full'), printlevel)
+    else:
+        model_pt3.fit_result = model_pt3.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
     params = model_pt3.fit_result.floatParsFinal()
 
     # Plot fit result
     model_pt3.plot_fit(
         b_mass_branch,
         dataset_data,
-        os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt3_final.png'),
+        os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt3_final.pdf'),
         fit_components = [
             model_pt3.signal_model,
             model_pt3.background_models['comb_bkg_pdf'],
@@ -134,8 +132,17 @@ def do_fit(dataset_params, output_params, fit_params, args):
     model_pt3.gauss_coeff.setVal(_gauss_coeff * _norm_sf)
 
     # Write final fit to RooWorkspace
-    write_workspace(output_params, args, model_pt3, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm])
+    if write:
+        write_workspace(output_params, args, model_pt3, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm])
 
+    # TODO Add fit result return values for use in BDT scan
+    if get_yield:
+        if 'jpsi' in args.mode:
+            model_pt3.signal_model.createIntegral(ROOT.RooArgSet(b_mass_branch))
+        if 'psi2s' in args.mode:
+            norm = sig_coeff.getValV()
+            shape_integral = model_pt3.signal_model.createIntegral(ROOT.RooArgSet(b_mass_branch),ROOT.NormSet(b_mass_branch))
+            print(norm, shape_integral.getValV())
 
 def main(args):
     with open(args.config, 'r') as f:

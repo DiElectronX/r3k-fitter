@@ -55,24 +55,28 @@ def save_params(params, fit_params, output_params, args, get_params=False):
 
     return template
 
-def prepare_inputs(dataset_params, fit_params, isData=True):
-    f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
+def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score_cut=None):
+    if set_file is None:
+        f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
+    else:
+        f_in = ROOT.TFile(set_file, 'READ')
+
     tree = f_in.Get(dataset_params.tree_name)
     b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
     bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
     b_mass_branch.setRange('full', *fit_params.full_mass_range)
-
     if isData:
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset = ROOT.RooDataSet('dataset_data' if isData else 'dataset_mc', 'Dataset', tree, variables)
+        dataset = ROOT.RooDataSet('dataset_data', 'Dataset', tree, variables)
     else:
         weight_branch = ROOT.RooRealVar(dataset_params.mc_weight_branch, 'Weight', -100., 100.)
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
-        dataset = ROOT.RooDataSet('dataset_data' if isData else 'dataset_mc', 'Dataset', tree, variables, weight_branch.GetName())
+        dataset = ROOT.RooDataSet('dataset_mc', 'Dataset', tree, variables, weight_branch.GetName())
 
-    cutstring = '{}>4.0&&{}>{}&&{}<{}'.format(
+    cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
         dataset_params.score_branch,
+        fit_params.bdt_score_cut if score_cut is None else score_cut,
         dataset_params.ll_mass_branch,
         fit_params.region['ll_mass_range'][0],
         dataset_params.ll_mass_branch,

@@ -6,6 +6,7 @@ class Model:
         self.dataset = None
         self.signal_model = None
         self.background_models = {}
+        self.constraints = {}
         self.fit_model = None
         self.fit_result = None
 
@@ -140,14 +141,19 @@ class Model:
 
         get_color = (col for col in [ROOT.kBlue, ROOT.kGreen+3, ROOT.kRed+2, ROOT.kOrange-3])
         frame = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
-        dataset.plotOn(frame)
+        dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()))
         self.fit_model.plotOn(
             frame,
             ROOT.RooFit.Range('full'),
             ROOT.RooFit.NormRange(''),
+            ROOT.RooFit.Name(self.fit_model.GetName()),
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
         )
+
+        h_pull = frame.pullHist()
+        frame_pull = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
+        frame_pull.addPlotable(h_pull, 'P')
 
         for comp in fit_components:
             plot_argset = ROOT.RooArgSet(comp)
@@ -160,7 +166,53 @@ class Model:
                 ROOT.RooFit.LineColor(next(get_color))
             )
 
-        canvas = ROOT.TCanvas('c', '', 800, 600)
+        chi2 = frame.chiSquare(
+            self.fit_model.GetName(),
+            dataset.GetName(),
+            len(self.fit_model.getParameters(dataset))
+        )
+
+        c = ROOT.TCanvas('c', ' ', 800, 600)
+        pad1 = ROOT.TPad('pad1', 'pad1', 0, 0.3, 1, 1.0)
+        pad1.SetBottomMargin(0.02)  # joins upper and lower plot
+        pad1.SetGridx()
+        pad1.Draw()
+        c.cd()
+        pad2 = ROOT.TPad('pad2', 'pad2', 0, 0.05, 1, 0.3)
+        pad2.SetTopMargin(0.02)
+        pad2.SetBottomMargin(0.2)
+        pad2.SetGridx()
+        pad2.Draw()
+
+        pad1.cd()
         frame.Draw()
-        canvas.SaveAs(output_filepath)
+        ax_y_main = frame.GetYaxis()
+        ax_x_main = frame.GetXaxis()
+        ax_x_main.SetLabelOffset(3.)
+
+        label = ROOT.TLatex(0.65, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
+        label.SetTextSize(0.08)
+        label.SetNDC(ROOT.kTRUE)
+        label.Draw()
+
+        pad2.cd()
+        frame_pull.Draw()
+
+        ax_y_pull = frame_pull.GetYaxis()
+        ax_x_pull = frame_pull.GetXaxis()
+
+        line = ROOT.TLine(ax_x_pull.GetXmin(), 0, ax_x_pull.GetXmax(), 0)
+        line.SetLineStyle(7)
+        line.Draw()
+
+        ax_y_pull.SetTitle('#frac{y - y_{fit}}{#sigma_{y}}')
+        ax_y_pull.SetTitleOffset(.35)
+        ax_y_pull.SetNdivisions(8)
+
+        ax_y_pull.SetTitleSize(2.8*ax_y_main.GetTitleSize())
+        ax_y_pull.SetLabelSize(2.8*ax_y_main.GetLabelSize())
+        ax_x_pull.SetTitleSize(2.8*ax_x_main.GetTitleSize())
+        ax_x_pull.SetLabelSize(2.8*ax_x_main.GetLabelSize())
+
+        c.SaveAs(output_filepath)
 

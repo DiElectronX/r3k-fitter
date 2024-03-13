@@ -1,12 +1,13 @@
 datasets:
-  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__xval_slimmed.root
-  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__rare_xval.root
-  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__jpsi_xval.root
-  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__psi2s_xval.root
-  tree_name: mytreefit
+  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_data_slimmed.root
+  samesignelectrons_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_same_sign_electrons.root
+  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_rare.root
+  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_jpsi.root
+  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_psi2s.root
+  tree_name: mytree
   b_mass_branch: Bmass
   ll_mass_branch: Mll
-  score_branch: xgb
+  score_branch: bdt_score
   mc_weight_branch: trig_wgt
 
 output:
