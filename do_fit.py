@@ -1,37 +1,11 @@
-import os
 import ROOT
 import yaml
 import argparse
-
-def makedirs(path):
-    try:
-        os.makedirs(path)
-    except OSError:
-        pass
-
-def set_verbosity(args):
-    ROOT.gROOT.SetBatch(True)
-    ROOT.gErrorIgnoreLevel = ROOT.kInfo if args.verbose else ROOT.kWarning
-    ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.INFO if args.verbose else ROOT.RooFit.ERROR)
-    printlevel = ROOT.RooFit.PrintLevel(1 if args.verbose else -1)
-
-    return printlevel
+from utils import *
+from fit_models import Model
 
 
-def set_mode(dataset_params, output_params, fit_params, args):
-    mode = args.mode
-
-    valid_file_key = [i for i in vars(dataset_params).keys() if mode in i]
-    assert len(valid_file_key)==1
-    dataset_params.mc_sig_file = getattr(dataset_params,valid_file_key[0])
-
-    valid_fit_key = [i for i in fit_params.regions.keys() if mode in i]
-    assert len(valid_fit_key)==1
-    fit_params.region = fit_params.regions[valid_fit_key[0]]
-    fit_params.fit_defaults = fit_params.region['defaults']
-
-
-def do_fit(dataset_params, output_params, fit_params, args):
+def do_fit(dataset_params, output_params, fit_params, args, write=True, get_yield=False):
     printlevel = set_verbosity(args)
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
@@ -40,322 +14,135 @@ def do_fit(dataset_params, output_params, fit_params, args):
     if not args.cache:
         if args.verbose:
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
-        f_in = ROOT.TFile(dataset_params.mc_sig_file, 'READ')
-        tree = f_in.Get(dataset_params.tree_name)
-        var = dataset_params.b_mass_branch
-        b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
-        bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
-        ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
-        b_mass_branch.setRange('full', *fit_params.full_mass_range)
-        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset_mc = ROOT.RooDataSet('dataset_mc', 'dataset_mc', tree, variables)
-        cutstring = '{}>4.0&&{}>{}&&{}<{}'.format(
-            dataset_params.score_branch,
-            dataset_params.ll_mass_branch,
-            fit_params.region['ll_mass_range'][0],
-            dataset_params.ll_mass_branch,
-            fit_params.region['ll_mass_range'][1],
+
+        # Import ROOT file dataset
+        b_mass_branch, dataset_mc = prepare_inputs(dataset_params, fit_params, isData=False)
+
+        # Build Roofit model for signal
+        model_pt1 = Model({'branch' : b_mass_branch, 'dataset' : dataset_mc})
+        model_pt1.build_signal_model('cb+gauss', b_mass_branch, fit_params.fit_defaults, let_float=True)
+        model_pt1.fit_model = model_pt1.signal_model
+
+        # Fit model to data
+        model_pt1.fit_result = model_pt1.signal_model.fitTo(dataset_mc, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
+        params = model_pt1.fit_result.floatParsFinal()
+        # Plot fit result
+        model_pt1.plot_fit(
+            b_mass_branch,
+            dataset_mc,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt1_sig_template.pdf'),
+            fit_components = [
+                model_pt1.cb_pdf,
+                model_pt1.gauss_pdf,
+            ],
         )
-        cuts = ROOT.TCut(cutstring)
-        dataset_mc = dataset_mc.reduce(cuts.GetTitle())
-        f_in.Close()
 
-        cb_mean = ROOT.RooRealVar(
-            'cb_mean',
-            'DS-CB: location parameter of the Gaussian component',
-            *fit_params.fit_defaults['cb_mean'])
-        cb_sigma = ROOT.RooRealVar(
-            'cb_sigma',
-            'DS-CB: width parameter of the Gaussian component',
-            *fit_params.fit_defaults['cb_sigma'])
-        cb_alphaL = ROOT.RooRealVar(
-            'cb_alphaL',
-            'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-            *fit_params.fit_defaults['cb_alphaL'])
-        cb_nL = ROOT.RooRealVar(
-            'cb_nL',
-            'DS-CB: exponent of power-law tail on the left',
-            *fit_params.fit_defaults['cb_nL'])
-        cb_alphaR = ROOT.RooRealVar(
-            'cb_alphaR',
-            'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-            *fit_params.fit_defaults['cb_alphaR'])
-        cb_nR = ROOT.RooRealVar(
-            'cb_nR',
-            'DS-CB: exponent of power-law tail on the right',
-            *fit_params.fit_defaults['cb_nR'])
-        cb_pdf = ROOT.RooTwoSidedCBShape(
-            'cb_pdf',
-            'Double-sided crystal-ball pdf',
-            b_mass_branch,cb_mean,cb_sigma,cb_alphaL,cb_nL,cb_alphaR,cb_nR)
+        # Save fit shape parameters
+        template = save_params(params, fit_params, output_params, args)
 
-        model = cb_pdf
-
-        result_pt1 = model.fitTo(dataset_mc, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
-        params = result_pt1.floatParsFinal()
-
-        frame = b_mass_branch.frame()
-        dataset_mc.plotOn(frame)
-        model.plotOn(frame)
-
-        canvas = ROOT.TCanvas('canvas', 'Fitting Example', 800, 600)
-        frame.Draw()
-        canvas.SaveAs(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt1_sig_template.png'))
-
-        signal_template = {}
-        for param in params:
-            if param.GetName() in ['cb_alphaL','cb_alphaR','cb_mean','cb_nL','cb_nR','cb_sigma','signal_num']:
-                signal_template[param.GetName()] = param.getVal()
-
-        if args.verbose:
-            print('Fitted MC Template Parameters:')
-            for k, v in signal_template.items():
-                print('\t'+k+' = '+str(round(v,2)))
-
-        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt1_sig_template.yml'), 'w') as file:
-            yaml.dump(signal_template, file)
-
-    # Part 2 - Use template to fit signal + exponential in data
+    # Part 2 - Use template to exponential in same-sign electron data
     if not args.cache:
         if args.verbose:
             print('\nStarting Fit 2 - Single-Background Template\n{}'.format(50*'~'))
 
-        f_in = ROOT.TFile(dataset_params.data_file, 'READ')
-        tree = f_in.Get(dataset_params.tree_name)
-        var = dataset_params.b_mass_branch
-        b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
-        bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
-        ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
-        b_mass_branch.setRange('full', *fit_params.full_mass_range)
-        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset_data = ROOT.RooDataSet('dataset_data', 'dataset_data', tree, variables)
-        cutstring = '{}>4.0&&{}>{}&&{}<{}'.format(
-            dataset_params.score_branch,
-            dataset_params.ll_mass_branch,
-            fit_params.region['ll_mass_range'][0],
-            dataset_params.ll_mass_branch,
-            fit_params.region['ll_mass_range'][1],
-        )
-        cuts = ROOT.TCut(cutstring)
-        dataset_data = dataset_data.reduce(cuts.GetTitle())
-        f_in.Close()
+        # Import ROOT file dataset
+        b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesignelectrons_data_file, score_cut=None)
 
+        # Build Roofit model for exponential background
+        model_pt2 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
+        model_pt2.add_background_model('comb_bkg_pdf', 'exp', b_mass_branch, fit_params.fit_defaults, let_float=True)
+        model_pt2.fit_model = model_pt2.background_models['comb_bkg_pdf']
 
-        cb_mean = ROOT.RooRealVar(
-            'cb_mean',
-            'DS-CB: location parameter of the Gaussian component',
-            signal_template['cb_mean'])
-        cb_sigma = ROOT.RooRealVar(
-            'cb_sigma',
-            'DS-CB: width parameter of the Gaussian component',
-            signal_template['cb_sigma'])
-        cb_alphaL = ROOT.RooRealVar(
-            'cb_alphaL',
-            'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-            signal_template['cb_alphaL'])
-        cb_nL = ROOT.RooRealVar(
-            'cb_nL',
-            'DS-CB: exponent of power-law tail on the left',
-            signal_template['cb_nL'])
-        cb_alphaR = ROOT.RooRealVar(
-            'cb_alphaR',
-            'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-            signal_template['cb_alphaR'])
-        cb_nR = ROOT.RooRealVar(
-            'cb_nR',
-            'DS-CB: exponent of power-law tail on the right',
-            signal_template['cb_nR'])
-        cb_pdf = ROOT.RooTwoSidedCBShape(
-            'cb_pdf',
-            'Double-sided crystal-ball pdf',
-            b_mass_branch,cb_mean,cb_sigma,cb_alphaL,cb_nL,cb_alphaR,cb_nR)
+        # Fit model to data
+        model_pt2.fit_result = model_pt2.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
+        params = model_pt2.fit_result.floatParsFinal()
 
-        exp_slope = ROOT.RooRealVar(
-            'exp_slope',
-            'slope of exponential',
-            *fit_params.fit_defaults['exp_slope'])
-        expo_pdf = ROOT.RooExponential('expo_pdf', 'Exponential PDF', b_mass_branch, exp_slope)
-
-        cb_coeff = ROOT.RooRealVar('cb_coeff', 'Gaussian Coefficient', 0.8, 0.0, 1.0)
-        exp_coeff = ROOT.RooRealVar('exp_coeff', 'Exponential Coefficient', 0.2,0.0, 1.0)
-
-        pdf_sum = ROOT.RooAddPdf('pdf_sum', 'Sum of Gaussian and Exponential',
-                                 ROOT.RooArgList(cb_pdf, expo_pdf),
-                                 ROOT.RooArgList(cb_coeff, exp_coeff)
+        # Plot fit result
+        model_pt2.plot_fit(
+            b_mass_branch,
+            dataset_data,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt2_exp_template.pdf'),
+            fit_components = [
+                model_pt2.background_models['comb_bkg_pdf'],
+            ],
         )
 
-        result_pt2 = pdf_sum.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
-        params = result_pt2.floatParsFinal()
-
-        frame = b_mass_branch.frame()
-        dataset_data.plotOn(frame)
-        pdf_sum.plotOn(frame)
-
-        canvas = ROOT.TCanvas('canvas', 'Fitting Example', 800, 600)
-        frame.Draw()
-        canvas.SaveAs(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt2_exp_template.png'))
-
-        exp_template = {}
-        for param in params:
-            if param.GetName() in ['exp_slope']:
-                exp_template[param.GetName()] = param.getVal()
-
-        if args.verbose:
-            print('Fitted Exponential Template Parameters:')
-            for k, v in exp_template.items():
-                print('\t'+k+' = '+str(round(v,2)))
-
-        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt2_exp_template.yml'), 'w') as file:
-            yaml.dump(exp_template, file)
+        # Save fit shape parameters
+        template = save_params(params, fit_params, output_params, args)
 
     # Part 3 - Add partial background shape to simplified fit
     if args.verbose:
         print('\nStarting Fit 3 - Final Double-Background Model\n{}'.format(50*'~'))
 
     if args.cache:
-        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt1_sig_template.yml'), 'r') as file:
-            signal_template = yaml.safe_load(file)
+        # Load fit shape templates from file
+        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), 'r') as file:
+            template = yaml.safe_load(file)
 
-        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt2_exp_template.yml'), 'r') as file:
-            exp_template = yaml.safe_load(file)
+    # Import ROOT file dataset
+    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
 
-        f_in = ROOT.TFile(dataset_params.data_file, 'READ')
-        tree = f_in.Get(dataset_params.tree_name)
-        var = dataset_params.b_mass_branch
-        b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
-        bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
-        ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
-        b_mass_branch.setRange('full', *fit_params.full_mass_range)
-        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset_data = ROOT.RooDataSet('dataset_data', 'dataset_data', tree, variables)
-        cutstring = '{}>4.0&&{}>{}&&{}<{}'.format(
-            dataset_params.score_branch,
-            dataset_params.ll_mass_branch,
-            fit_params.region['ll_mass_range'][0],
-            dataset_params.ll_mass_branch,
-            fit_params.region['ll_mass_range'][1],
-        )
-        cuts = ROOT.TCut(cutstring)
-        dataset_data = dataset_data.reduce(cuts.GetTitle())
-        f_in.Close()
+    # Build Roofit model for signal + 2-shape background
+    model_pt3 = Model({'branch' : b_mass_branch, 'dataset' : dataset_data})
+    model_pt3.build_signal_model('cb+gauss', b_mass_branch, template, let_float=False)
+    model_pt3.add_background_model('comb_bkg_pdf', 'exp', b_mass_branch, fit_params.fit_defaults, let_float=True)
+    model_pt3.add_background_model('part_bkg_pdf', 'generic', b_mass_branch, fit_params.fit_defaults, let_float=True)
 
-    cb_mean = ROOT.RooRealVar(
-        'cb_mean',
-        'DS-CB: location parameter of the Gaussian component',
-        signal_template['cb_mean'])
-    cb_sigma = ROOT.RooRealVar(
-        'cb_sigma',
-        'DS-CB: width parameter of the Gaussian component',
-        signal_template['cb_sigma'])
-    cb_alphaL = ROOT.RooRealVar(
-        'cb_alphaL',
-        'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-        signal_template['cb_alphaL'])
-    cb_nL = ROOT.RooRealVar(
-        'cb_nL',
-        'DS-CB: exponent of power-law tail on the left',
-        signal_template['cb_nL'])
-    cb_alphaR = ROOT.RooRealVar(
-        'cb_alphaR',
-        'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-        signal_template['cb_alphaR'])
-    cb_nR = ROOT.RooRealVar(
-        'cb_nR',
-        'DS-CB: exponent of power-law tail on the right',
-        signal_template['cb_nR'])
-    cb_pdf = ROOT.RooTwoSidedCBShape(
-        'cb_pdf',
-        'Double-sided crystal-ball pdf',
-        b_mass_branch,cb_mean,cb_sigma,cb_alphaL,cb_nL,cb_alphaR,cb_nR)
-
-    exp_slope = ROOT.RooRealVar(
-        'exp_slope',
-        'slope of exponential',
-        exp_template['exp_slope'])
-    expo_pdf = ROOT.RooExponential('expo_pdf','Exponential PDF',b_mass_branch,exp_slope)
-
-    part_exp_slope = ROOT.RooRealVar(
-        'part_exp_slope',
-        'slope of exponential',
-        *fit_params.fit_defaults['part_exp_slope'])
-    erfc_mean = ROOT.RooRealVar(
-        'erfc_mean',
-        'mean of the Erfc gaussian',
-        *fit_params.fit_defaults['erfc_mean'])
-    erfc_sigma = ROOT.RooRealVar(
-        'erfc_sigma',
-        'width of the Erfc gaussian',
-        *fit_params.fit_defaults['erfc_sigma'])
-    function = 'TMath::Exp(TMath::Abs(part_exp_slope)*('+dataset_params.b_mass_branch+'-erfc_mean))*TMath::Erfc(('+dataset_params.b_mass_branch+'-erfc_mean)/erfc_sigma)'
-    generic_pdf = ROOT.RooGenericPdf(
-        'generic_pdf',
-        'generic pdf (expo*erfc)',
-        function,ROOT.RooArgSet(b_mass_branch,erfc_mean,erfc_sigma,part_exp_slope))
-
-
-    cb_coeff = ROOT.RooRealVar('cb_coeff', 'Gaussian Coefficient', 0.8, 0.0, 1.0)
-    exp_coeff = ROOT.RooRealVar('exp_coeff', 'Exponential Coefficient', 0.15,0.0, 0.9)
-    part_coeff = ROOT.RooRealVar('part_coeff', 'part Coefficient', 0.01,0.0, 0.25)
-    pdf_sum_final = ROOT.RooAddPdf('pdf_sum_final', 'Sum of Gaussian and Exponential',
-                                   ROOT.RooArgList(cb_pdf, expo_pdf, generic_pdf),
-                                   ROOT.RooArgList(cb_coeff, exp_coeff, part_coeff)
+    sig_coeff = ROOT.RooRealVar('sig_coeff', 'Signal PDF Coefficient', 0.8, 0.0, 1.0)
+    comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff', 'Combinatorial Background Coefficient', 0.15,0.0, 0.9)
+    part_bkg_coeff = ROOT.RooRealVar('part_bkg_coeff', 'Partially Reconstructed Background Coefficient', 0.01,0.0, 0.25)
+    model_pt3.fit_model = ROOT.RooAddPdf('pdf_sum_final', 'Sum of Gaussian and Exponential',
+                                   ROOT.RooArgList(model_pt3.signal_model, model_pt3.background_models['comb_bkg_pdf'], model_pt3.background_models['part_bkg_pdf']),
+                                   ROOT.RooArgList(sig_coeff, comb_bkg_coeff, part_bkg_coeff)
     )
 
-    result_pt3 = pdf_sum_final.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
-    generic_pdf_norm = ROOT.RooRealVar('generic_pdf_norm', 'Number of partially reconstructed background events', 0, 0, 1000000)
-    expo_pdf_norm = ROOT.RooRealVar('expo_pdf_norm', 'Number of combinatorial background events', 0, 0, 1000000)
-    params = result_pt3.floatParsFinal()
+    # Add gaussian contraint to fit parameters
+    model_pt3.constraints.update({
+        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_pt3.exp_slope,ROOT.RooFit.RooConst(template['exp_slope']), ROOT.RooFit.RooConst(0.1))
+    })
 
-    frame = b_mass_branch.frame()
-    dataset_data.plotOn(frame)
-    pdf_sum_final.plotOn(
-        frame,
-        ROOT.RooFit.LineStyle(ROOT.kSolid),
-        ROOT.RooFit.LineColor(ROOT.kBlue),
+    # Fit model to data
+    if model_pt3.constraints:
+        model_pt3.fit_result = model_pt3.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*model_pt3.constraints.values())), ROOT.RooFit.Range('full'), printlevel)
+    else:
+        model_pt3.fit_result = model_pt3.fit_model.fitTo(dataset_data, ROOT.RooFit.Save(), ROOT.RooFit.Range('full'), printlevel)
+    params = model_pt3.fit_result.floatParsFinal()
+
+    # Plot fit result
+    model_pt3.plot_fit(
+        b_mass_branch,
+        dataset_data,
+        os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt3_final.pdf'),
+        fit_components = [
+            model_pt3.signal_model,
+            model_pt3.background_models['comb_bkg_pdf'],
+            model_pt3.background_models['part_bkg_pdf'],
+        ],
     )
 
-    cb_plot = ROOT.RooArgSet(cb_pdf)
-    exp_plot = ROOT.RooArgSet(expo_pdf)
-    part_plot = ROOT.RooArgSet(generic_pdf)
+    # Add normalization terms for Combine
+    comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf_norm', 'Number of combinatorial background events', 0, 0, 1000000)
+    part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf_norm', 'Number of partially reconstructed background events', 0, 0, 1000000)
 
-    pdf_sum_final.plotOn(
-        frame, 
-        ROOT.RooFit.Components(cb_plot),         
-        ROOT.RooFit.LineStyle(ROOT.kDashed),
-        ROOT.RooFit.LineColor(ROOT.kGreen+3)
-    )
-    pdf_sum_final.plotOn(
-        frame, 
-        ROOT.RooFit.Components(exp_plot),
-        ROOT.RooFit.LineStyle(ROOT.kDashed),
-        ROOT.RooFit.LineColor(ROOT.kRed+2)
-    )
-    pdf_sum_final.plotOn(
-        frame, 
-        ROOT.RooFit.Components(part_plot),
-        ROOT.RooFit.LineStyle(ROOT.kDashed),
-        ROOT.RooFit.LineColor(ROOT.kOrange-3)
-    )
-
-    canvas = ROOT.TCanvas('canvas', 'Fitting Example', 800, 600)
-    frame.Draw()
-    canvas.SaveAs(os.path.join(output_params.output_dir,'fit_'+args.mode+'_pt3_final.png'))
+    # Renormalize signal pdf
+    _cb_coeff = model_pt3.cb_coeff.getVal()
+    _gauss_coeff = model_pt3.gauss_coeff.getVal()
+    _norm_sf = 1 / (_cb_coeff + _gauss_coeff)
+    model_pt3.cb_coeff.setVal(_cb_coeff * _norm_sf)
+    model_pt3.gauss_coeff.setVal(_gauss_coeff * _norm_sf)
 
     # Write final fit to RooWorkspace
-    f_out = ROOT.TFile(os.path.join(output_params.output_dir,'workspace_'+args.mode+'.root'), 'RECREATE')
+    if write:
+        write_workspace(output_params, args, model_pt3, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm])
 
-    workspace = ROOT.RooWorkspace('workspace','workspace')
-    getattr(workspace, 'import')(dataset_data)
-    getattr(workspace, 'import')(pdf_sum_final)
-    getattr(workspace, 'import')(expo_pdf_norm)
-    getattr(workspace, 'import')(generic_pdf_norm)
-
-    if args.verbose:
-        workspace.Print()
-
-    workspace.Write()
-    f_out.Close()
-
+    # TODO Add fit result return values for use in BDT scan
+    if get_yield:
+        if 'jpsi' in args.mode:
+            model_pt3.signal_model.createIntegral(ROOT.RooArgSet(b_mass_branch))
+        if 'psi2s' in args.mode:
+            norm = sig_coeff.getValV()
+            shape_integral = model_pt3.signal_model.createIntegral(ROOT.RooArgSet(b_mass_branch),ROOT.NormSet(b_mass_branch))
+            print(norm, shape_integral.getValV())
 
 def main(args):
     with open(args.config, 'r') as f:

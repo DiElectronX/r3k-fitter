@@ -1,12 +1,14 @@
 datasets:
-  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__xval_slimmed.root
-  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__rare_xval.root
-  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__jpsi_xval.root
-  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_baseline_v6__psi2s_xval.root
-  tree_name: mytreefit
+  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_data_slimmed.root
+  samesignelectrons_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_same_sign_electrons.root
+  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_rare.root
+  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_jpsi.root
+  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_psi2s.root
+  tree_name: mytree
   b_mass_branch: Bmass
   ll_mass_branch: Mll
-  score_branch: xgb
+  score_branch: bdt_score
+  mc_weight_branch: trig_wgt
 
 output:
   output_dir: fitter_outputs/
@@ -18,29 +20,29 @@ fit:
     jpsi:
       ll_mass_range: [2.95, 3.2]
       defaults:
-        cb_mean:         [5.279, 5.26, 5.30]
-        cb_sigma:        [0.057, 0.04, 0.10]
-        cb_alphaL:       [2., 0.5, 3.]
-        cb_nL:           [10., 1., 100.]
-        cb_alphaR:       [2., 0.5, 3.]
-        cb_nR:           [10., 1., 100.]
-        exp_slope:       [-0.5, -100., 0.]
-        part_exp_slope:  [3.8, 3.0, 5.0]       # [2.25,1.,10.]
-        erfc_mean:       [5., 4.95, 5.05]     # [5.13,5.1,5.15]
-        erfc_sigma:      [0.04, 0.03, 0.06]    # [0.03,0.015,0.05]
+        cb_mean:         [5.2, 5.1, 5.4]
+        cb_sigma:        [0.08, 0.01, 0.5]
+        cb_alpha:        [3., 1., 6.]
+        cb_n:            [5., 0.5, 100.]
+        gauss_mean:      [5.2, 5.1, 5.3]
+        gauss_sigma:     [0.05, 0.01, 0.5]
+        exp_slope:       [-2., -5., 0.]
+        part_exp_slope:  [5., 4.0, 10.]
+        erfc_mean:       [5., 4.95, 5.05]
+        erfc_sigma:      [0.03, 0.01, 0.06]
     psi2s:
       ll_mass_range: [3.55, 3.8]
       defaults:
-        cb_mean:         [5.279, 5.26, 5.30]
-        cb_sigma:        [0.063, 0.04, 0.07]
-        cb_alphaL:       [2., 0.5, 3.]
-        cb_nL:           [10., 1., 100.]
-        cb_alphaR:       [2., 0.5, 3.]
-        cb_nR:           [10., 1., 100.]
+        cb_mean:         [5.2, 5.1, 5.4]
+        cb_sigma:        [0.08, 0.01, 0.5]
+        cb_alpha:        [3., 1., 6.]
+        cb_n:            [5., 0.5, 100.]
+        gauss_mean:      [5.2, 5.1, 5.3]
+        gauss_sigma:     [0.05, 0.01, 0.5]
         exp_slope:       [-0.5, -100., 0.]
-        part_exp_slope:  [3.8, 3.0, 5.0]       # [2.25,1.,10.]
-        erfc_mean:       [5.05, 5., 5.1]     # [5.13,5.1,5.15]
-        erfc_sigma:      [0.04, 0.03, 0.06]    # [0.03,0.015,0.05]
+        part_exp_slope:  [5., 4., 10.]
+        erfc_mean:       [5.08, 5.05, 5.15]
+        erfc_sigma:      [0.03, 0.01, 0.06]
     rare:
       ll_mass_range: [1.05, 2.45]
       defaults:
@@ -51,6 +53,6 @@ fit:
         cb_alphaR:       [2., 0.5, 3.]
         cb_nR:           [10., 1., 100.]
         exp_slope:       [-0.5, -100., 0.]
-        part_exp_slope:  [3.8, 3.0, 5.0]       # [2.25,1.,10.]
-        erfc_mean:       [5.16, 5.15, 5.17]     # [5.13,5.1,5.15]
-        erfc_sigma:      [0.06, 0.05, 0.10]    # [0.03,0.015,0.05]
+        part_exp_slope:  [3.8, 3.0, 5.0]
+        erfc_mean:       [5.16, 5.15, 5.17]
+        erfc_sigma:      [0.06, 0.05, 0.10]
