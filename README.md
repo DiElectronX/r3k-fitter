@@ -37,15 +37,27 @@ cd .../r3k-fitter
 cmssw-el7
 cmsenv
 ```
-## Initial Fitting Code
+## Initial RooFit Fitting Code
 
 Use following script to perform simplified fits in RooFit 
 ```
-python do_plot.py -m <mode> [-v] [-lc]
+python do_fit.py -c <config> -m <mode> [-v] [-lc]
 ```
-The mode flag is currently configured for unblinded fits in the jpsi and psi2s regions, so the only accepted arguments are `jpsi` or `psi2s`. The optional `-v` flag handles verbosity if output in the terminal from Root and RooFit is desired. The optional `-lc` flag directs the script to load fit templates from step 1 & 2 of the script directly from cached files, jumping directly to the final step 3 fit if such templates exist. All other parameters are stored in the `fit_cfg.yml` configuration file.
+- `-c` : Configuration file for handling inputs, outputs, and fit parameters. Default argument is `fit_cfg.yml`
+- `-m` : Mode argument is currently set up for unblinded fits in the jpsi and psi2s control regions. The only accepted values are `jpsi`, `psi2s`, or `all` for processing the full list.
+- `-v` : Optional flag for verbosity. Use if output in the terminal from Root and RooFit is desired
+- `-lc` : Optional flag directs the script to load cached fit templates from step 1 & 2 of the script, skips to final fit
+- All other parameters are stored and easily editable in the `fit_cfg.yml` configuration file
 
-## Running Initial Fits Through Combine
+## Running Fits Through Combine
+
+### Workflow Script
+
+To run all the following steps in a single go, the following script is included for ease-of-use. Make sure that the given datacard is correctly linked to the relevant RooWorkspace and PDF objects from the RooFit output.
+
+```
+./runCombineFit.sh <.txt datacard file> <label>
+```
 
 ### Generate .txt Datacard
 No real instruction here yet, just ensure that you are loading in the specified shapes from the previous step's RooWorkspace. `datacard_psi2s_simple.txt` is a functional template.
@@ -60,10 +72,9 @@ text2workspace.py datacard.txt
 combine -M MultiDimFit datacard.root --saveWorkspace -n <fit output file label>
 ```
 
-## Plotting
+### Plotting Results
 
-Use following script to show results for combine ML fit to data
+Use following script to show results for combine ML fit to data. All PDF shapes are saved in `fitDiagnostics` file.
 ```
-combine -M FitDiagnostics --plots --signalPdfNames='*sig*' --backgroundPdfNames='*bkg*' <combine MultiDimFit fit output>
+combine -M FitDiagnostics --plots --saveShapes --signalPdfNames='*sig*' --backgroundPdfNames='*comb_bkg*,*part_bkg*' <combine MultiDimFit fit output>
 ```
-note: must have used `--saveWorkspace` flag in previous step to save objects for this script
