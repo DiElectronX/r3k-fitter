@@ -29,7 +29,7 @@ def set_mode(dataset_params, output_params, fit_params, args):
     fit_params.region = fit_params.regions[valid_fit_key[0]]
     fit_params.fit_defaults = fit_params.region['defaults']
 
-def save_params(params, fit_params, output_params, args, get_params=False):
+def save_params(params, template_filename, fit_params, args, get_params=False):
     template = {}
     for param in params:
         if param.GetName() in fit_params.fit_defaults.keys():
@@ -40,7 +40,6 @@ def save_params(params, fit_params, output_params, args, get_params=False):
         for k, v in template.items():
             print('\t'+k+' = '+str(round(v,2)))
 
-    template_filename = os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml')
     if os.path.isfile(template_filename): 
         with open(template_filename) as f:
             old_template = yaml.safe_load(f)
@@ -55,7 +54,7 @@ def save_params(params, fit_params, output_params, args, get_params=False):
 
     return template
 
-def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score_cut=None):
+def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score_cut=None, binned=False):
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
     else:
@@ -68,11 +67,13 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score
     b_mass_branch.setRange('full', *fit_params.full_mass_range)
     if isData:
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset = ROOT.RooDataSet('dataset_data', 'Dataset', tree, variables)
+        dataset = ROOT.RooDataHist('dataset_data', 'Dataset', tree, variables) \
+            if binned else ROOT.RooDataSet('dataset_data', 'Dataset', tree, variables)
     else:
         weight_branch = ROOT.RooRealVar(dataset_params.mc_weight_branch, 'Weight', -100., 100.)
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
-        dataset = ROOT.RooDataSet('dataset_mc', 'Dataset', tree, variables, weight_branch.GetName())
+        dataset = ROOT.RooDataHist('dataset_mc', 'Dataset', tree, variables, weight_branch.GetName()) \
+            if binned else ROOT.RooDataSet('dataset_mc', 'Dataset', tree, variables, weight_branch.GetName())
 
     cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
         dataset_params.score_branch,
@@ -87,6 +88,13 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score
     f_in.Close()
 
     return b_mass_branch, dataset
+
+
+def format_params(params, let_float=False):
+    params = {k : (v if isinstance(v,list) else (v,)) for k, v in params.items()}
+    params = {k : (v if let_float else (v[0],)) for k, v in params.items()}
+
+    return params
 
 
 def write_workspace(output_params, args, model, extra_objs=[]):

@@ -1,31 +1,18 @@
 import ROOT
+from utils import *
 
-class Model:
-    def __init__(self, dictionary={}):
-        self.branch = None
-        self.dataset = None
-        self.signal_model = None
-        self.background_models = {}
-        self.constraints = {}
-        self.fit_model = None
-        self.fit_result = None
+class PDFDict():
+    def __init__(self, name, shape, xvar, parameters, dataset=None, let_float=False):
+        allowed_shapes = ['dcb', 'cb+gauss', 'cb+cb', 'exp', 'generic', 'kde']
+        assert shape in allowed_shapes, "Choose a PDF shape from list:{}".format(allowed_shapes)
 
-        for k, v in dictionary.items():
-            setattr(self, k, v)
+        self.name = name
+        self.parameters = parameters
+        self.build_model(shape, xvar, self.parameters, let_float, dataset)
 
-    def format_params(self, params, let_float=False):
-        params = {k : (v if isinstance(v,list) else (v,)) for k, v in params.items()}
-        params = {k : (v if let_float else (v[0],)) for k, v in params.items()}
 
-        return params
-
-    def build_signal_model(self, shape, mass, parameters, let_float=True):
-        assert shape in ['dcb', 'cb+gauss']
-        if self.branch:
-            assert self.branch == mass
-        parameters = self.format_params(parameters, let_float)
-
-        if 'dcb' in shape:
+    def build_model(self, shape, xvar, parameters, let_float, dataset):
+        if shape=='dcb':
             self.cb_mean = ROOT.RooRealVar(
                 'cb_mean',
                 'DS-CB: location parameter of the Gaussian component',
@@ -51,12 +38,12 @@ class Model:
                 'DS-CB: exponent of power-law tail on the right',
                 *parameters['cb_nR'])
 
-            self.signal_model = ROOT.RooTwoSidedCBShape(
-                'sig_pdf',
+            self.model = ROOT.RooTwoSidedCBShape(
+                self.name,
                 'Double-sided crystal-ball pdf',
-                mass, self.cb_mean, self.cb_sigma, self.cb_alphaL, self.cb_nL, self.cb_alphaR, self.cb_nR)
+                xvar, self.cb_mean, self.cb_sigma, self.cb_alphaL, self.cb_nL, self.cb_alphaR, self.cb_nR)
 
-        if 'cb+gauss':
+        if shape=='cb+gauss':
             self.gauss_mean = ROOT.RooRealVar(
                 'gauss_mean',
                 'CB+Gauss: Mean of gaussian component',
@@ -68,8 +55,7 @@ class Model:
             self.gauss_pdf = ROOT.RooGaussian(
                 'gauss_pdf',
                 'CB+Gauss: Gaussian component',
-                mass, self.gauss_mean, self.gauss_sigma)
-
+                xvar, self.gauss_mean, self.gauss_sigma)
             self.cb_mean = ROOT.RooRealVar(
                 'cb_mean',
                 'CB+Gauss: Mean of CB component',
@@ -89,33 +75,78 @@ class Model:
             self.cb_pdf = ROOT.RooCBShape(
                 'cb_pdf',
                 'CB+Gauss: CB component',
-                mass, self.cb_mean, self.cb_sigma, self.cb_alpha, self.cb_n)
+                xvar, self.cb_mean, self.cb_sigma, self.cb_alpha, self.cb_n)
 
             self.cb_coeff = ROOT.RooRealVar('cb_coeff', 'CB Coefficient', 0.8, 0.0, 1.0)
             self.gauss_coeff = ROOT.RooRealVar('gauss_coeff', 'Gaussian Coefficient', 0.2,0.0, 1.0)
-            self.signal_model = ROOT.RooAddPdf(
-                'sig_pdf',
+            self.model = ROOT.RooAddPdf(
+                 self.name,
                 'CB+Gauss',
                  ROOT.RooArgList(self.cb_pdf, self.gauss_pdf),
                  ROOT.RooArgList(self.cb_coeff, self.gauss_coeff)
             )
 
+        if shape=='cb+cb':
+            self.cb1_mean = ROOT.RooRealVar(
+                'cb1_mean',
+                'CB+CB: Mean of CB1 component',
+                *parameters['cb1_mean'])
+            self.cb1_sigma = ROOT.RooRealVar(
+                'cb1_sigma',
+                'CB+CB: Width of CB1 component',
+                *parameters['cb1_sigma'])
+            self.cb1_alpha = ROOT.RooRealVar(
+                'cb1_alpha',
+                'CB+CB: Location of transition to a power law of CB1 component',
+                *parameters['cb1_alpha'])
+            self.cb1_n = ROOT.RooRealVar(
+                'cb1_n',
+                'CB+CB: Exponent of power-law tail of CB1 component',
+                *parameters['cb1_n'])
+            self.cb1_pdf = ROOT.RooCBShape(
+                'cb1_pdf',
+                'CB+CB: CB1 component',
+                xvar, self.cb1_mean, self.cb1_sigma, self.cb1_alpha, self.cb1_n)
+            self.cb2_mean = ROOT.RooRealVar(
+                'cb2_mean',
+                'CB+CB: Mean of CB2 component',
+                *parameters['cb2_mean'])
+            self.cb2_sigma = ROOT.RooRealVar(
+                'cb2_sigma',
+                'CB+CB: Width of CB2 component',
+                *parameters['cb2_sigma'])
+            self.cb2_alpha = ROOT.RooRealVar(
+                'cb2_alpha',
+                'CB+CB: Location of transition to a power law of CB2 component',
+                *parameters['cb2_alpha'])
+            self.cb2_n = ROOT.RooRealVar(
+                'cb2_n',
+                'CB+CB: Exponent of power-law tail of CB2 component',
+                *parameters['cb2_n'])
+            self.cb2_pdf = ROOT.RooCBShape(
+                'cb2_pdf',
+                'CB+CB: CB2 component',
+                xvar, self.cb2_mean, self.cb2_sigma, self.cb2_alpha, self.cb2_n)
 
-    def add_background_model(self, name, shape, mass, parameters, let_float=True):
-        assert shape in ['exp', 'generic']
-        if self.branch:
-            assert self.branch == mass
-        self.branch = mass
-        parameters = self.format_params(parameters, let_float)
+            self.cb1_coeff = ROOT.RooRealVar('cb1_coeff', 'CB1 Coefficient', 1., 0.0, 1000000.)
+            self.cb2_coeff = ROOT.RooRealVar('cb2_coeff', 'CB2 Coefficient', 1., 0.0, 1000000.)
+            self.model = ROOT.RooAddPdf(
+                self.name,
+                'CB+CB',
+                 ROOT.RooArgList(self.cb1_pdf, self.cb2_pdf),
+                 ROOT.RooArgList(self.cb1_coeff, self.cb2_coeff)
+            )
 
-        if 'exp' in shape:
+
+        if shape=='exp':
             self.exp_slope = ROOT.RooRealVar(
                 'exp_slope',
                 'slope of exponential',
-                *parameters['exp_slope'] if let_float else parameters['exp_slope'])
-            self.background_models[name] = ROOT.RooExponential(name, 'Exponential PDF', mass, self.exp_slope)
+                *parameters['exp_slope'])
 
-        if 'generic' in shape:
+            self.model = ROOT.RooExponential(self.name, 'Exponential PDF', xvar, self.exp_slope)
+
+        if shape=='generic':
             self.part_exp_slope = ROOT.RooRealVar(
                 'part_exp_slope',
                 'slope of exponential',
@@ -129,24 +160,66 @@ class Model:
                 'width of the Erfc gaussian',
                 *parameters['erfc_sigma'])
 
-            function = 'TMath::Exp(TMath::Abs(part_exp_slope)*('+mass.GetName()+'-erfc_mean))*TMath::Erfc(('+mass.GetName()+'-erfc_mean)/erfc_sigma)'
-            self.background_models[name] = ROOT.RooGenericPdf(
-                name,
+            function = 'TMath::Exp(TMath::Abs(part_exp_slope)*('+xvar.GetName()+'-erfc_mean))*TMath::Erfc(('+xvar.GetName()+'-erfc_mean)/erfc_sigma)'
+            self.model = ROOT.RooGenericPdf(
+                self.name,
                 'Generic PDF (exp*erfc)',
-                function,ROOT.RooArgSet(mass, self.erfc_mean, self.erfc_sigma, self.part_exp_slope)
+                function,ROOT.RooArgSet(xvar, self.erfc_mean, self.erfc_sigma, self.part_exp_slope)
             )
 
-    def plot_fit(self, branch, dataset, output_filepath, fit_components=[]):
-        assert self.fit_model is not None
+        if shape=='kde':
+            assert dataset is not None, 'Dataset required for KDE initilization'
+            self.model = ROOT.RooKeysPdf(self.name, 'Kernel Density Estimate PDF', xvar, dataset, ROOT.RooKeysPdf.NoMirror)
 
-        get_color = (col for col in [ROOT.kBlue, ROOT.kGreen+3, ROOT.kRed+2, ROOT.kOrange-3])
+
+class FitModel:
+    def __init__(self, dictionary={}):
+        self.branch = None
+        self.dataset = None
+        self.signal_models = {}
+        self.background_models = {}
+        self.constraints = {}
+        self.fit_model = None
+        self.fit_result = None
+
+        for k, v in dictionary.items():
+            setattr(self, k, v)
+
+        assert self.branch is not None, "Must define variable for fit"
+
+
+    def add_signal_model(self, name, shape, parameters, let_float=True):
+        fit_params = format_params(parameters, let_float)
+        sig_model = PDFDict(name, shape, self.branch, fit_params, self.dataset, let_float)
+        self.signal_models[name] = sig_model
+        setattr(self, sig_model.name, sig_model.model)
+
+
+    def add_background_model(self, name, shape, parameters, let_float=True):
+        fit_params = format_params(parameters, let_float)
+        bkg_model = PDFDict(name, shape, self.branch, fit_params, self.dataset, let_float)
+        self.background_models[name] = bkg_model
+        setattr(self, bkg_model.name, bkg_model.model)
+
+
+    def fit(self, dataset, fit_range=ROOT.RooFit.Range('full'), printlevel=ROOT.RooFit.PrintLevel(-1)):
+        if self.constraints:
+            self.fit_result = self.fit_model.fitTo(dataset, ROOT.RooFit.Save(), ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())), fit_range, printlevel)
+        else:
+            self.fit_result = self.fit_model.fitTo(dataset, ROOT.RooFit.Save(), fit_range, printlevel)
+
+    def plot_fit(self, branch, dataset, output_filepath, fit_components=[]):
+        assert self.fit_model is not None, "Must assign 'fit_model'"
+        plot_model = self.fit_model
+
+        get_color = (col for col in [ROOT.kBlue, ROOT.kGreen+3, ROOT.kRed+2, ROOT.kOrange-3, ROOT.kMagenta+1, ROOT.kCyan+1])
         frame = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
         dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()))
-        self.fit_model.plotOn(
+        plot_model.plotOn(
             frame,
             ROOT.RooFit.Range('full'),
             ROOT.RooFit.NormRange(''),
-            ROOT.RooFit.Name(self.fit_model.GetName()),
+            ROOT.RooFit.Name(plot_model.GetName()),
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
         )
@@ -157,7 +230,7 @@ class Model:
 
         for comp in fit_components:
             plot_argset = ROOT.RooArgSet(comp)
-            self.fit_model.plotOn(
+            plot_model.plotOn(
                 frame,
                 ROOT.RooFit.Components(plot_argset),
                 ROOT.RooFit.Range('full'),
@@ -167,9 +240,9 @@ class Model:
             )
 
         chi2 = frame.chiSquare(
-            self.fit_model.GetName(),
+            plot_model.GetName(),
             dataset.GetName(),
-            len(self.fit_model.getParameters(dataset))
+            len(plot_model.getParameters(dataset))
         )
 
         c = ROOT.TCanvas('c', ' ', 800, 600)
@@ -215,4 +288,5 @@ class Model:
         ax_x_pull.SetLabelSize(2.8*ax_x_main.GetLabelSize())
 
         c.SaveAs(output_filepath)
-
+        c.SaveAs(output_filepath.replace('pdf','png'))
+        c.Close()
