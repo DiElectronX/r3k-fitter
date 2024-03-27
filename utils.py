@@ -28,6 +28,8 @@ def set_mode(dataset_params, output_params, fit_params, args):
     assert len(valid_fit_key)==1
     fit_params.region = fit_params.regions[valid_fit_key[0]]
     fit_params.fit_defaults = fit_params.region['defaults']
+    fit_params.blinded = fit_params.region.get('blinded')
+
 
 def save_params(params, template_filename, fit_params, args, get_params=False):
     template = {}
@@ -40,7 +42,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False):
         for k, v in template.items():
             print('\t'+k+' = '+str(round(v,2)))
 
-    if os.path.isfile(template_filename): 
+    if os.path.isfile(template_filename):
         with open(template_filename) as f:
             old_template = yaml.safe_load(f)
     else:
@@ -54,17 +56,29 @@ def save_params(params, template_filename, fit_params, args, get_params=False):
 
     return template
 
-def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score_cut=None, binned=False):
+def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score_cut=None, binned=False, unblind=False):
+    # Read data from config file or manually set input
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
     else:
         f_in = ROOT.TFile(set_file, 'READ')
 
+    # Read branches
     tree = f_in.Get(dataset_params.tree_name)
     b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
     bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
+
+    # Set fit ranges
     b_mass_branch.setRange('full', *fit_params.full_mass_range)
+    blindDataset = (isData and (fit_params.blinded)) and not unblind
+    if blindDataset:
+        assert len(fit_params.blinded)==2
+        sb1_range = (fit_params.full_mass_range[0], fit_params.blinded[0])
+        sb2_range = (fit_params.blinded[1], fit_params.full_mass_range[1])
+        b_mass_branch.setRange('sb1', *sb1_range)
+        b_mass_branch.setRange('sb2', *sb2_range)
+
     if isData:
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
         dataset = ROOT.RooDataHist('dataset_data', 'Dataset', tree, variables) \
@@ -85,6 +99,10 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score
     )
     cuts = ROOT.TCut(cutstring)
     dataset = dataset.reduce(cuts.GetTitle())
+
+    if blindDataset:
+        dataset = dataset.reduce(ROOT.RooFit.CutRange('sb1,sb2'))
+
     f_in.Close()
 
     return b_mass_branch, dataset
@@ -102,7 +120,7 @@ def write_workspace(output_params, args, model, extra_objs=[]):
     workspace = ROOT.RooWorkspace('workspace','workspace')
     getattr(workspace, 'import')(model.dataset)
     getattr(workspace, 'import')(model.fit_model)
-    
+
     for obj in extra_objs:
         getattr(workspace, 'import')(obj)
 

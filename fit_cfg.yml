@@ -1,6 +1,6 @@
 datasets:
   data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_data_slimmed.root
-  samesignelectrons_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_same_sign_electrons.root
+  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_same_sign_electrons.root
   rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_rare.root
   jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_jpsi.root
   psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_psi2s.root
@@ -53,6 +53,7 @@ fit:
         erfc_sigma:      [0.03, 0.01, 0.06]
     rare:
       ll_mass_range: [1.05, 2.45]
+      blinded: [5.1, 5.4]
       defaults:
         cb_mean:         [5.279, 5.26, 5.30]
         cb_sigma:        [0.05, 0.04, 0.07]
@@ -61,6 +62,5 @@ fit:
         cb_alphaR:       [2., 0.5, 3.]
         cb_nR:           [10., 1., 100.]
         exp_slope:       [-0.5, -100., 0.]
-        part_exp_slope:  [3.8, 3.0, 5.0]
-        erfc_mean:       [5.16, 5.15, 5.17]
-        erfc_sigma:      [0.06, 0.05, 0.10]
+        kde_mirror:      'MirrorLeft' 
+        kde_rho:         2

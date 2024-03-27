@@ -169,7 +169,8 @@ class PDFDict():
 
         if shape=='kde':
             assert dataset is not None, 'Dataset required for KDE initilization'
-            self.model = ROOT.RooKeysPdf(self.name, 'Kernel Density Estimate PDF', xvar, dataset, ROOT.RooKeysPdf.NoMirror)
+            kde_mirror = getattr(ROOT.RooKeysPdf,*parameters['kde_mirror'])
+            self.model = ROOT.RooKeysPdf(self.name, 'Kernel Density Estimate PDF', xvar, dataset, kde_mirror,*parameters['kde_rho'])
 
 
 class FitModel:
@@ -188,37 +189,89 @@ class FitModel:
         assert self.branch is not None, "Must define variable for fit"
 
 
-    def add_signal_model(self, name, shape, parameters, let_float=True):
+    def add_signal_model(self, *args, **kwds):
+        if len(args)==2 and isinstance(args[0], str) and isinstance(args[1], PDFDict):
+            self.add_signal_model_from_object(*args, **kwds)
+        else:
+            self.add_signal_model_from_scratch(*args, **kwds)
+
+
+    def add_signal_model_from_scratch(self, name, shape, parameters, let_float=True):
         fit_params = format_params(parameters, let_float)
         sig_model = PDFDict(name, shape, self.branch, fit_params, self.dataset, let_float)
         self.signal_models[name] = sig_model
         setattr(self, sig_model.name, sig_model.model)
 
 
-    def add_background_model(self, name, shape, parameters, let_float=True):
+    def add_signal_model_from_object(self, name, model_dict):
+        self.signal_models[name] = model_dict
+        setattr(self, name, model_dict.model)
+
+
+    def add_background_model(self, *args, **kwds):
+        if len(args)==2 and isinstance(args[0], str) and isinstance(args[1], PDFDict):
+            self.add_background_model_from_object(*args, **kwds)
+        else:
+            self.add_background_model_from_scratch(*args, **kwds)
+
+
+    def add_background_model_from_scratch(self, name, shape, parameters, let_float=True):
         fit_params = format_params(parameters, let_float)
         bkg_model = PDFDict(name, shape, self.branch, fit_params, self.dataset, let_float)
         self.background_models[name] = bkg_model
         setattr(self, bkg_model.name, bkg_model.model)
 
 
-    def fit(self, dataset, fit_range=ROOT.RooFit.Range('full'), printlevel=ROOT.RooFit.PrintLevel(-1)):
-        if self.constraints:
-            self.fit_result = self.fit_model.fitTo(dataset, ROOT.RooFit.Save(), ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())), fit_range, printlevel)
-        else:
-            self.fit_result = self.fit_model.fitTo(dataset, ROOT.RooFit.Save(), fit_range, printlevel)
+    def add_background_model_from_object(self, name, model_dict):
+        self.background_models[name] = model_dict
+        setattr(self, name, model_dict.model)
 
-    def plot_fit(self, branch, dataset, output_filepath, fit_components=[]):
+
+    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1)):
+        fit_args = [
+            dataset,
+            ROOT.RooFit.Save(),
+            ROOT.RooFit.Range(fit_range),
+            #ROOT.RooFit.NormRange(fit_norm_range),
+            printlevel,
+        ]
+
+        if self.constraints:
+            fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
+
+        self.fit_result = self.fit_model.fitTo(*fit_args)
+
+
+    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], fit_range='full', fit_norm_range='full'):
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
 
-        get_color = (col for col in [ROOT.kBlue, ROOT.kGreen+3, ROOT.kRed+2, ROOT.kOrange-3, ROOT.kMagenta+1, ROOT.kCyan+1])
-        frame = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
-        dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()))
+        root_colors = [ROOT.kBlue, ROOT.kGreen+3, ROOT.kRed+2, ROOT.kOrange-3, ROOT.kMagenta+1, ROOT.kCyan+1]
+        get_color = (col for col in root_colors)
+
+        frame = branch.frame(
+            ROOT.RooFit.Title(' '),
+            #ROOT.RooFit.Range('full'),
+            #fit_range,
+            #fit_norm_range,
+        )
+
+        if fit_range!='full':
+            dataset = dataset.reduce(ROOT.RooFit.CutRange(fit_range))
+
+        fit_range = ROOT.RooFit.Range(fit_range)
+        fit_norm_range = ROOT.RooFit.NormRange(fit_norm_range)
+
+        dataset.plotOn(
+            frame,
+            ROOT.RooFit.Name(dataset.GetName()),
+            #fit_range,
+            #fit_norm_range,
+        )
         plot_model.plotOn(
             frame,
             ROOT.RooFit.Range('full'),
-            ROOT.RooFit.NormRange(''),
+            fit_norm_range,
             ROOT.RooFit.Name(plot_model.GetName()),
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
@@ -233,8 +286,8 @@ class FitModel:
             plot_model.plotOn(
                 frame,
                 ROOT.RooFit.Components(plot_argset),
-                ROOT.RooFit.Range('full'),
-                ROOT.RooFit.NormRange(''),
+                fit_range,
+                fit_norm_range,
                 ROOT.RooFit.LineStyle(ROOT.kDashed),
                 ROOT.RooFit.LineColor(next(get_color))
             )
@@ -242,7 +295,7 @@ class FitModel:
         chi2 = frame.chiSquare(
             plot_model.GetName(),
             dataset.GetName(),
-            len(plot_model.getParameters(dataset))
+            len(plot_model.getParameters(dataset)),
         )
 
         c = ROOT.TCanvas('c', ' ', 800, 600)
