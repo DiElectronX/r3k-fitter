@@ -10,70 +10,56 @@ class PDFDict():
         self.parameters = parameters
         self.channel = channel
         self.channel_label = channel if channel else ''
-        self.build_model(shape, xvar, self.parameters, let_float, dataset)
+        self.build_model(shape, xvar, self.parameters, let_float, dataset, label=self.name)
 
 
-    def build_model(self, shape, xvar, parameters, let_float, dataset):
+    def build_model(self, shape, xvar, parameters, let_float, dataset, label=''):
         if shape=='dcb':
-            self.cb_mean = ROOT.RooRealVar(
-                'cb_mean'+self.channel_label,
-                'DS-CB: location parameter of the Gaussian component',
-                *parameters['cb_mean'])
-            self.cb_sigma = ROOT.RooRealVar(
-                'cb_sigma'+self.channel_label,
-                'DS-CB: width parameter of the Gaussian component',
-                *parameters['cb_sigma'])
-            self.cb_alphaL = ROOT.RooRealVar(
-                'cb_alphaL'+self.channel_label,
-                'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-                *parameters['cb_alphaL'])
-            self.cb_nL = ROOT.RooRealVar(
-                'cb_nL'+self.channel_label,
-                'DS-CB: exponent of power-law tail on the left',
-                *parameters['cb_nL'])
-            self.cb_alphaR = ROOT.RooRealVar(
-                'cb_alphaR'+self.channel_label,
-                'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-                *parameters['cb_alphaR'])
-            self.cb_nR = ROOT.RooRealVar(
-                'cb_nR'+self.channel_label,
-                'DS-CB: exponent of power-law tail on the right',
-                *parameters['cb_nR'])
+            shape_dict = {
+                'cb_mean' :   'DS-CB: location parameter of the Gaussian component',
+                'cb_sigma' :  'DS-CB: width parameter of the Gaussian component',
+                'cb_alphaL' : 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
+                'cb_nL' :     'DS-CB: exponent of power-law tail on the left',
+                'cb_alphaR' : 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
+                'cb_nR' :     'DS-CB: exponent of power-law tail on the right',
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
             self.model = ROOT.RooTwoSidedCBShape(
                 self.name+self.channel_label,
                 'Double-sided crystal-ball pdf',
                 xvar, self.cb_mean, self.cb_sigma, self.cb_alphaL, self.cb_nL, self.cb_alphaR, self.cb_nR)
 
         if shape=='cb+gauss':
-            self.gauss_mean = ROOT.RooRealVar(
-                'gauss_mean'+self.channel_label,
-                'CB+Gauss: Mean of gaussian component',
-                *parameters['gauss_mean'])
-            self.gauss_sigma = ROOT.RooRealVar(
-                'gauss_sigma'+self.channel_label,
-                'CB+Gauss: Width of gaussian component',
-                *parameters['gauss_sigma'])
+            shape_dict = {
+                'gauss_mean' :  'CB+Gauss: Mean of gaussian component',
+                'gauss_sigma' : 'CB+Gauss: Width of gaussian component',
+                'cb_mean' :     'CB+Gauss: Mean of CB component',
+                'cb_sigma' :    'CB+Gauss: Width of CB component',
+                'cb_alpha' :    'CB+Gauss: Location of transition to a power law of CB component',
+                'cb_n' :        'CB+Gauss: Exponent of power-law tail of CB component',
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
             self.gauss_pdf = ROOT.RooGaussian(
                 'gauss_pdf'+self.channel_label,
                 'CB+Gauss: Gaussian component',
                 xvar, self.gauss_mean, self.gauss_sigma)
 
-            self.cb_mean = ROOT.RooRealVar(
-                'cb_mean'+self.channel_label,
-                'CB+Gauss: Mean of CB component',
-                *parameters['cb_mean'])
-            self.cb_sigma = ROOT.RooRealVar(
-                'cb_sigma'+self.channel_label,
-                'CB+Gauss: Width of CB component',
-                *parameters['cb_sigma'])
-            self.cb_alpha = ROOT.RooRealVar(
-                'cb_alpha'+self.channel_label,
-                'CB+Gauss: Location of transition to a power law of CB component',
-                *parameters['cb_alpha'])
-            self.cb_n = ROOT.RooRealVar(
-                'cb_n'+self.channel_label,
-                'CB+Gauss: Exponent of power-law tail of CB component',
-                *parameters['cb_n'])
             self.cb_pdf = ROOT.RooCBShape(
                 'cb_pdf'+self.channel_label,
                 'CB+Gauss: CB component',
@@ -89,50 +75,37 @@ class PDFDict():
             )
 
         if shape=='cb+cb':
-            self.cb1_mean = ROOT.RooRealVar(
-                'cb1_mean'+self.channel_label,
-                'CB+CB: Mean of CB1 component',
-                *parameters['cb1_mean'])
-            self.cb1_sigma = ROOT.RooRealVar(
-                'cb1_sigma'+self.channel_label,
-                'CB+CB: Width of CB1 component',
-                *parameters['cb1_sigma'])
-            self.cb1_alpha = ROOT.RooRealVar(
-                'cb1_alpha'+self.channel_label,
-                'CB+CB: Location of transition to a power law of CB1 component',
-                *parameters['cb1_alpha'])
-            self.cb1_n = ROOT.RooRealVar(
-                'cb1_n'+self.channel_label,
-                'CB+CB: Exponent of power-law tail of CB1 component',
-                *parameters['cb1_n'])
+            shape_dict = {
+                'cb1_mean'  : 'CB+CB: Mean of CB1 component', 
+                'cb1_sigma' : 'CB+CB: Width of CB1 component', 
+                'cb1_alpha' : 'CB+CB: Location of transition to a power law of CB1 component', 
+                'cb1_n'     : 'CB+CB: Exponent of power-law tail of CB1 component', 
+                'cb2_mean'  : 'CB+CB: Mean of CB2 component', 
+                'cb2_sigma' : 'CB+CB: Width of CB2 component', 
+                'cb2_alpha' : 'CB+CB: Location of transition to a power law of CB2 component', 
+                'cb2_n'     : 'CB+CB: Exponent of power-law tail of CB2 component', 
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
             self.cb1_pdf = ROOT.RooCBShape(
                 'cb1_pdf'+self.channel_label,
                 'CB+CB: CB1 component',
                 xvar, self.cb1_mean, self.cb1_sigma, self.cb1_alpha, self.cb1_n)
 
-            self.cb2_mean = ROOT.RooRealVar(
-                'cb2_mean'+self.channel_label,
-                'CB+CB: Mean of CB2 component',
-                *parameters['cb2_mean'])
-            self.cb2_sigma = ROOT.RooRealVar(
-                'cb2_sigma'+self.channel_label,
-                'CB+CB: Width of CB2 component',
-                *parameters['cb2_sigma'])
-            self.cb2_alpha = ROOT.RooRealVar(
-                'cb2_alpha'+self.channel_label,
-                'CB+CB: Location of transition to a power law of CB2 component',
-                *parameters['cb2_alpha'])
-            self.cb2_n = ROOT.RooRealVar(
-                'cb2_n'+self.channel_label,
-                'CB+CB: Exponent of power-law tail of CB2 component',
-                *parameters['cb2_n'])
             self.cb2_pdf = ROOT.RooCBShape(
                 'cb2_pdf'+self.channel_label,
                 'CB+CB: CB2 component',
                 xvar, self.cb2_mean, self.cb2_sigma, self.cb2_alpha, self.cb2_n)
 
-            self.cb1_coeff = ROOT.RooRealVar('cb1_coeff'+self.channel_label, 'CB1 Coefficient', 1., 0.0, 1000000.)
-            self.cb2_coeff = ROOT.RooRealVar('cb2_coeff'+self.channel_label, 'CB2 Coefficient', 1., 0.0, 1000000.)
+            self.cb1_coeff = ROOT.RooRealVar('cb1_coeff'+self.channel_label, 'CB1 Coefficient',1., 0.0, 1000000.)
+            self.cb2_coeff = ROOT.RooRealVar('cb2_coeff'+self.channel_label, 'CB2 Coefficient',1., 0.0, 1000000.)
             self.model = ROOT.RooAddPdf(
                 self.name+self.channel_label,
                 'CB+CB',
@@ -141,41 +114,48 @@ class PDFDict():
             )
 
         if shape=='exp':
-            self.exp_slope = ROOT.RooRealVar(
-                'exp_slope'+self.channel_label,
-                'slope of exponential',
-                *parameters['exp_slope'])
+            shape_dict = {
+                'exp_slope' :   'Exp: slope of exponential',
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
 
             self.model = ROOT.RooExponential(self.name+self.channel_label, 'Exponential PDF', xvar, self.exp_slope)
 
         if shape=='generic':
-            part_exp_slope_name = 'part_exp_slope'+self.channel_label
-            self.part_exp_slope = ROOT.RooRealVar(
-                part_exp_slope_name,
-                'slope of exponential',
-                *parameters['part_exp_slope'])
-            erfc_mean_name = 'erfc_mean'+self.channel_label
-            self.erfc_mean = ROOT.RooRealVar(
-                erfc_mean_name,
-                'mean of the Erfc gaussian',
-                *parameters['erfc_mean'])
-            erfc_sigma_name = 'erfc_sigma'+self.channel_label
-            self.erfc_sigma = ROOT.RooRealVar(
-                erfc_sigma_name,
-                'width of the Erfc gaussian',
-                *parameters['erfc_sigma'])
+            shape_dict = {
+                'exp_slope'   : 'Generic (exp*erfc): slope of exponential', 
+                'erfc_mean'   : 'Generic (exp*erfc): mean of error function', 
+                'erfc_sigma'  : 'Generic (exp*erfc): width of error function', 
+            }
 
-            function = 'TMath::Exp(TMath::Abs({})*({}-{}))*TMath::Erfc(({}-{})/{})'.format(part_exp_slope_name, xvar.GetName(), erfc_mean_name, xvar.GetName(), erfc_mean_name, erfc_sigma_name)
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
+            function = 'TMath::Exp(TMath::Abs({})*({}-{}))*TMath::Erfc(({}-{})/{})'.format(self.exp_slope.GetName(), xvar.GetName(), self.erfc_mean.GetName(), xvar.GetName(), self.erfc_mean.GetName(), self.erfc_sigma.GetName())
             self.model = ROOT.RooGenericPdf(
                 self.name+self.channel_label,
                 'Generic PDF (exp*erfc)',
-                function,ROOT.RooArgSet(xvar, self.erfc_mean, self.erfc_sigma, self.part_exp_slope)
+                function,ROOT.RooArgSet(xvar, self.erfc_mean, self.erfc_sigma, self.exp_slope)
             )
 
         if shape=='kde':
             assert dataset is not None, 'Dataset required for KDE initilization'
-            kde_mirror = getattr(ROOT.RooKeysPdf,*parameters['kde_mirror'])
-            self.model = ROOT.RooKeysPdf(self.name+self.channel_label, 'Kernel Density Estimate PDF', xvar, dataset, kde_mirror,*parameters['kde_rho'])
+            name_fmt = 'kde_mirror_'+label if label else 'kde_mirror'
+            kde_mirror = getattr(ROOT.RooKeysPdf, *parameters[name_fmt])
+            name_fmt = 'kde_rho_'+label if label else 'kde_rho'
+            self.model = ROOT.RooKeysPdf(self.name+self.channel_label, 'Kernel Density Estimate PDF', xvar, dataset, kde_mirror,*parameters[name_fmt])
 
 
 class FitModel:

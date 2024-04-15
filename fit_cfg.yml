@@ -21,51 +21,52 @@ fit:
     jpsi:
       ll_mass_range: [2.95, 3.2]
       defaults:
-        cb1_coeff:       [1., 0., 100000]
-        cb1_mean:        [5.2, 5.1, 5.4]
-        cb1_sigma:       [0.08, 0.01, 0.5]
-        cb1_alpha:       [3., 1., 6.]
-        cb1_n:           [5., 0.5, 100.]
-        cb2_coeff:       [1., 0., 100000]
-        cb2_mean:        [5.2, 5.1, 5.4]
-        cb2_sigma:       [0.08, 0.01, 0.5]
-        cb2_alpha:       [3., 1., 6.]
-        cb2_n:           [5., 0.5, 100.]
-        exp_slope:       [-2., -5., 0.]
-        part_exp_slope:  [5., 4.0, 10.]
-        erfc_mean:       [5., 4.95, 5.05]
-        erfc_sigma:      [0.03, 0.01, 0.06]
-        kde_mirror:      'MirrorLeft' 
-        kde_rho:         2
+        cb1_coeff_sig_pdf:       [1., 0., 100000]
+        cb1_mean_sig_pdf:        [5.2, 5.1, 5.4]
+        cb1_sigma_sig_pdf:       [0.08, 0.01, 0.5]
+        cb1_alpha_sig_pdf:       [3., 1., 6.]
+        cb1_n_sig_pdf:           [5., 0.5, 100.]
+        cb2_coeff_sig_pdf:       [1., 0., 100000]
+        cb2_mean_sig_pdf:        [5.2, 5.1, 5.4]
+        cb2_sigma_sig_pdf:       [0.08, 0.01, 0.5]
+        cb2_alpha_sig_pdf:       [3., 1., 6.]
+        cb2_n_sig_pdf:           [5., 0.5, 100.]
+        exp_slope_comb_bkg_pdf:  [-2., -5., 0.]
+        exp_slope_part_bkg_pdf:  [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:  [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf: [0.03, 0.01, 0.06]
+        kde_mirror_part_bkg_pdf: 'MirrorLeft'
+        kde_rho_part_bkg_pdf:    2
     psi2s:
       ll_mass_range: [3.55, 3.8]
       defaults:
-        cb1_coeff:       [1., 0., 100000]
-        cb1_mean:        [5.2, 5.1, 5.4]
-        cb1_sigma:       [0.08, 0.01, 0.5]
-        cb1_alpha:       [3., 1., 6.]
-        cb1_n:           [5., 0.5, 100.]
-        cb2_coeff:       [1., 0., 100000]
-        cb2_mean:        [5.2, 5.1, 5.4]
-        cb2_sigma:       [0.08, 0.01, 0.5]
-        cb2_alpha:       [3., 1., 6.]
-        cb2_n:           [5., 0.5, 100.]
-        exp_slope:       [-0.5, -100., 0.]
-        part_exp_slope:  [5., 4., 10.]
-        erfc_mean:       [5.08, 5.05, 5.1]
-        erfc_sigma:      [0.03, 0.01, 0.06]
-        kde_mirror:      'MirrorAsymLeft' 
-        kde_rho:         1
+        cb1_coeff_sig_pdf:       [1., 0., 100000]
+        cb1_mean_sig_pdf:        [5.2, 5.1, 5.4]
+        cb1_sigma_sig_pdf:       [0.08, 0.01, 0.5]
+        cb1_alpha_sig_pdf:       [3., 1., 6.]
+        cb1_n_sig_pdf:           [5., 0.5, 100.]
+        cb2_coeff_sig_pdf:       [1., 0., 100000]
+        cb2_mean_sig_pdf:        [5.2, 5.1, 5.4]
+        cb2_sigma_sig_pdf:       [0.08, 0.01, 0.5]
+        cb2_alpha_sig_pdf:       [3., 1., 6.]
+        cb2_n_sig_pdf:           [5., 0.5, 100.]
+        exp_slope_comb_bkg_pdf:  [-0.5, -100., 0.]
+        exp_slope_part_bkg_pdf:  [5., 4., 10.]
+        erfc_mean_part_bkg_pdf:  [5.08, 5.05, 5.1]
+        erfc_sigma_part_bkg_pdf: [0.03, 0.01, 0.06]
+        kde_mirror_part_bkg_pdf: 'MirrorAsymLeft'
+        kde_rho_part_bkg_pdf:    1
     rare:
       ll_mass_range: [1.05, 2.45]
       blinded: [5.1, 5.4]
       defaults:
-        cb_mean:         [5.279, 5.26, 5.30]
-        cb_sigma:        [0.05, 0.04, 0.07]
-        cb_alphaL:       [2., 0.5, 3.]
-        cb_nL:           [10., 1., 100.]
-        cb_alphaR:       [2., 0.5, 3.]
-        cb_nR:           [10., 1., 100.]
-        exp_slope:       [-0.5, -100., 0.]
-        kde_mirror:      'MirrorLeft' 
-        kde_rho:         2
+        cb_mean_sig_pdf:         [5.27, 5.2, 5.3]
+        cb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
+        cb_alphaL_sig_pdf:       [0.77, 0.5, 2.]
+        cb_nL_sig_pdf:           [2.07, 1., 10.]
+        cb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
+        cb_nR_sig_pdf:           [3.48, 1., 10.]
+        exp_slope_comb_bkg_pdf:  [-1.46, -10., 0.]
+        exp_slope_jpsi_bkg_pdf:  [-14.11, -50., 0.]
+        kde_mirror_jpsi_bkg_pdf: 'MirrorLeft'
+        kde_rho_jpsi_bkg_pdf:    2

@@ -67,24 +67,32 @@ def do_signal_region_fit(dataset_params, output_params, fit_params, args, write=
         template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
 
     # Fit jpsi leakage in low-q2 region from MC
-    if args.verbose:
-        print('\nStarting Fit 3 - J/Psi Leakage Template\n{}'.format(50*'~'))
+    if not args.cache:
+        if args.verbose:
+            print('\nStarting Fit 3 - J/Psi Leakage Template\n{}'.format(50*'~'))
 
-    # Import ROOT file dataset
-    b_mass_branch, dataset_jpsi = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.jpsi_file)
+        # Import ROOT file dataset
+        b_mass_branch, dataset_jpsi = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.jpsi_file)
 
-    # Build Roofit model for exponential background
-    model_jpsi_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsi, 'channel_label' : fit_params.channel_label})
-    model_jpsi_template.add_background_model('jpsi_bkg_pdf', 'kde', fit_params.fit_defaults, let_float=False)
-    model_jpsi_template.fit_model = model_jpsi_template.jpsi_bkg_pdf
+        # Build Roofit model for exponential background
+        model_jpsi_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsi, 'channel_label' : fit_params.channel_label})
+        model_jpsi_template.add_background_model('jpsi_bkg_pdf', 'exp', fit_params.fit_defaults, let_float=True)
+        model_jpsi_template.fit_model = model_jpsi_template.jpsi_bkg_pdf
 
-    # Plot fit result
-    model_jpsi_template.plot_fit(
-        b_mass_branch,
-        dataset_jpsi,
-        os.path.join(output_params.output_dir,'fit_'+args.mode+'_jpsi_template.pdf'),
-        bins=30,
-    )
+        # Fit model to data
+        model_jpsi_template.fit(dataset_jpsi, printlevel=printlevel)
+        params = model_jpsi_template.fit_result.floatParsFinal()
+
+        # Plot fit result
+        model_jpsi_template.plot_fit(
+            b_mass_branch,
+            dataset_jpsi,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_jpsi_template.pdf'),
+            bins=30,
+        )
+           
+        # Save fit shape parameters
+        template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
 
     # Add template for final fit
     if args.verbose:
@@ -105,7 +113,7 @@ def do_signal_region_fit(dataset_params, output_params, fit_params, args, write=
         bkg_only_model.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
         bkg_only_model.add_background_model('jpsi_bkg_pdf', model_jpsi_template.background_models['jpsi_bkg_pdf'])
         comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 0.15, 0., 100000.)
-        jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 0.01, 0., 100.)
+        jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 540., 0., 100000.)
         bkg_only_model.fit_model = ROOT.RooAddPdf(
             'bkg_only_pdf',
             'Sum of Background PDFs',
@@ -147,12 +155,11 @@ def do_signal_region_fit(dataset_params, output_params, fit_params, args, write=
     model_final = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
     model_final.add_signal_model('sig_pdf', 'dcb', template, let_float=False)
     model_final.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
-    model_final.add_background_model('jpsi_bkg_pdf', model_jpsi_template.background_models['jpsi_bkg_pdf'])
+    model_final.add_background_model('jpsi_bkg_pdf', 'exp', template, let_float=False)
 
     sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 100., 0., 5*dataset_data.numEntries())
     comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 0.15, 0., 5*dataset_data.numEntries())
-    jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 100., 0., 80)
-    # jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 100., 0., 5*dataset_data.numEntries())
+    jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 540., 0., 5*dataset_data.numEntries())
     model_final.fit_model = ROOT.RooAddPdf(
         'pdf_sum_final',
         'Sum of Signal and Background PDFs',
@@ -170,7 +177,9 @@ def do_signal_region_fit(dataset_params, output_params, fit_params, args, write=
 
     # Add gaussian contraints to fit parameters
     model_final.constraints.update({
-        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope']), ROOT.RooFit.RooConst(0.5))
+        'exp_slope_comb_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_comb_bkg_pdf_constraint', 'exp_slope_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.5)),
+        'exp_slope_jpsi_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_jpsi_bkg_pdf_constraint', 'exp_slope_jpsi_bkg_pdf_constraint', model_final.background_models['jpsi_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_jpsi_bkg_pdf']), ROOT.RooFit.RooConst(0.5)),
+        # 'jpsi_bkg_coeff_jpsi_bkg_pdf_constraint' : ROOT.RooGaussian('jpsi_bkg_coeff_jpsi_bkg_pdf_constraint', 'jpsi_bkg_coeff_jpsi_bkg_pdf_constraint', jpsi_bkg_coeff, ROOT.RooFit.RooConst(template['exp_slope_jpsi_bkg_pdf']), ROOT.RooFit.RooConst(0.5)),
     })
 
     # Fit model to data
@@ -459,7 +468,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     model_final.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
     model_final.add_background_model('part_bkg_pdf', 'generic', fit_params.fit_defaults, let_float=True)
 
-    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 0.8, 0.0, 5*dataset_data.numEntries())
+    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 5000, 0.0, 5*dataset_data.numEntries())
     comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 0.15,0.0, 5*dataset_data.numEntries())
     part_bkg_coeff = ROOT.RooRealVar('part_bkg_coeff'+fit_params.channel_label, 'Partially Reconstructed Background Coefficient', 0.01,0.0, 5*dataset_data.numEntries())
     model_final.fit_model = ROOT.RooAddPdf(

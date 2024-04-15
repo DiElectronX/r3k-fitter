@@ -35,8 +35,9 @@ def set_mode(dataset_params, output_params, fit_params, args):
 def save_params(params, template_filename, fit_params, args, get_params=False):
     template = {}
     for param in params:
-        if param.GetName() in fit_params.fit_defaults.keys():
-            template[param.GetName()] = param.getVal()
+        for key in fit_params.fit_defaults.keys(): 
+            if key in param.GetName():
+                template[key] = param.getVal()
 
     if args.verbose:
         print('Fitted Template Parameters:')
