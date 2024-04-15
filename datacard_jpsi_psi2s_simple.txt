@@ -3,20 +3,20 @@ imax 2 number of bins
 jmax 2 number of processes minus 1
 kmax 0 number of nuisance parameters
 ----------------------------------------------------------------------------------------------------------------------------------
-shapes comb_bkg  jpsi_region       fitter_outputs/workspace_jpsi.root workspace:comb_bkg_pdf
-shapes data_obs  jpsi_region       fitter_outputs/workspace_jpsi.root workspace:dataset_data
-shapes part_bkg  jpsi_region       fitter_outputs/workspace_jpsi.root workspace:part_bkg_pdf
-shapes sig       jpsi_region       fitter_outputs/workspace_jpsi.root workspace:sig_pdf
-shapes comb_bkg  psi2s_region       fitter_outputs/workspace_psi2s.root workspace:comb_bkg_pdf
-shapes data_obs  psi2s_region       fitter_outputs/workspace_psi2s.root workspace:dataset_data
-shapes part_bkg  psi2s_region       fitter_outputs/workspace_psi2s.root workspace:part_bkg_pdf
-shapes sig       psi2s_region       fitter_outputs/workspace_psi2s.root workspace:sig_pdf
+shapes comb_bkg  jpsi_region        fitter_outputs/workspace_jpsi.root  workspace:comb_bkg_pdf_jpsi_region
+shapes data_obs  jpsi_region        fitter_outputs/workspace_jpsi.root  workspace:dataset_data_jpsi_region
+shapes part_bkg  jpsi_region        fitter_outputs/workspace_jpsi.root  workspace:part_bkg_pdf_jpsi_region
+shapes sig       jpsi_region        fitter_outputs/workspace_jpsi.root  workspace:sig_pdf_jpsi_region
+shapes comb_bkg  psi2s_region       fitter_outputs/workspace_psi2s.root workspace:comb_bkg_pdf_psi2s_region
+shapes data_obs  psi2s_region       fitter_outputs/workspace_psi2s.root workspace:dataset_data_psi2s_region
+shapes part_bkg  psi2s_region       fitter_outputs/workspace_psi2s.root workspace:part_bkg_pdf_psi2s_region
+shapes sig       psi2s_region       fitter_outputs/workspace_psi2s.root workspace:sig_pdf_psi2s_region
 ----------------------------------------------------------------------------------------------------------------------------------
 bin          jpsi_region    psi2s_region  
-observation  -1     -1   
+observation  -1             -1   
 ----------------------------------------------------------------------------------------------------------------------------------
 bin          jpsi_region       jpsi_region       jpsi_region       psi2s_region       psi2s_region       psi2s_region     
-process      sig       comb_bkg  part_bkg  sig       comb_bkg  part_bkg
-process      0         1         2         0         1         2       
-rate         62000     1         1         4800      1         1       
+process      sig               comb_bkg          part_bkg          sig                comb_bkg           part_bkg
+process      0                 1                 2                 0                  1                  2       
+rate         62000             1                 1                 4800               1                  1       
 ----------------------------------------------------------------------------------------------------------------------------------

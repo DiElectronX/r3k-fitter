@@ -20,13 +20,14 @@ def set_verbosity(args):
 def set_mode(dataset_params, output_params, fit_params, args):
     mode = args.mode
 
-    valid_file_key = [i for i in vars(dataset_params).keys() if mode in i]
+    valid_file_key = [i for i in vars(dataset_params).keys() if mode+'_file' in i]
     assert len(valid_file_key)==1
     dataset_params.mc_sig_file = getattr(dataset_params,valid_file_key[0])
 
     valid_fit_key = [i for i in fit_params.regions.keys() if mode in i]
     assert len(valid_fit_key)==1
     fit_params.region = fit_params.regions[valid_fit_key[0]]
+    fit_params.channel_label = '_'+valid_fit_key[0]+'_region'
     fit_params.fit_defaults = fit_params.region['defaults']
     fit_params.blinded = fit_params.region.get('blinded')
 
@@ -81,13 +82,13 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score
 
     if isData:
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset = ROOT.RooDataHist('dataset_data', 'Dataset', tree, variables) \
-            if binned else ROOT.RooDataSet('dataset_data', 'Dataset', tree, variables)
+        dataset = ROOT.RooDataHist('dataset_data'+fit_params.channel_label, 'Dataset', tree, variables) \
+            if binned else ROOT.RooDataSet('dataset_data'+fit_params.channel_label, 'Dataset', tree, variables)
     else:
         weight_branch = ROOT.RooRealVar(dataset_params.mc_weight_branch, 'Weight', -100., 100.)
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
-        dataset = ROOT.RooDataHist('dataset_mc', 'Dataset', tree, variables, weight_branch.GetName()) \
-            if binned else ROOT.RooDataSet('dataset_mc', 'Dataset', tree, variables, weight_branch.GetName())
+        dataset = ROOT.RooDataHist('dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, weight_branch.GetName()) \
+            if binned else ROOT.RooDataSet('dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, weight_branch.GetName())
 
     cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
         dataset_params.score_branch,

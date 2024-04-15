@@ -4,6 +4,7 @@ datasets:
   rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_rare.root
   jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_jpsi.root
   psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_psi2s.root
+  bu_kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_bu_kstar_jpsi_pion.root
   tree_name: mytree
   b_mass_branch: Bmass
   ll_mass_branch: Mll
@@ -20,12 +21,12 @@ fit:
     jpsi:
       ll_mass_range: [2.95, 3.2]
       defaults:
-        cb1_coeff:       [1., 0., 1E5]
+        cb1_coeff:       [1., 0., 100000]
         cb1_mean:        [5.2, 5.1, 5.4]
         cb1_sigma:       [0.08, 0.01, 0.5]
         cb1_alpha:       [3., 1., 6.]
         cb1_n:           [5., 0.5, 100.]
-        cb2_coeff:       [1., 0., 1E5]
+        cb2_coeff:       [1., 0., 100000]
         cb2_mean:        [5.2, 5.1, 5.4]
         cb2_sigma:       [0.08, 0.01, 0.5]
         cb2_alpha:       [3., 1., 6.]
@@ -34,15 +35,17 @@ fit:
         part_exp_slope:  [5., 4.0, 10.]
         erfc_mean:       [5., 4.95, 5.05]
         erfc_sigma:      [0.03, 0.01, 0.06]
+        kde_mirror:      'MirrorLeft' 
+        kde_rho:         2
     psi2s:
       ll_mass_range: [3.55, 3.8]
       defaults:
-        cb1_coeff:       [1., 0., 1E5]
+        cb1_coeff:       [1., 0., 100000]
         cb1_mean:        [5.2, 5.1, 5.4]
         cb1_sigma:       [0.08, 0.01, 0.5]
         cb1_alpha:       [3., 1., 6.]
         cb1_n:           [5., 0.5, 100.]
-        cb2_coeff:       [1., 0., 1E5]
+        cb2_coeff:       [1., 0., 100000]
         cb2_mean:        [5.2, 5.1, 5.4]
         cb2_sigma:       [0.08, 0.01, 0.5]
         cb2_alpha:       [3., 1., 6.]
@@ -51,6 +54,8 @@ fit:
         part_exp_slope:  [5., 4., 10.]
         erfc_mean:       [5.08, 5.05, 5.1]
         erfc_sigma:      [0.03, 0.01, 0.06]
+        kde_mirror:      'MirrorAsymLeft' 
+        kde_rho:         1
     rare:
       ll_mass_range: [1.05, 2.45]
       blinded: [5.1, 5.4]
