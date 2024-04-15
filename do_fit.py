@@ -123,16 +123,25 @@ def do_signal_region_fit(dataset_params, output_params, fit_params, args, write=
         # Generate expected background from sideband fit
         bkg_yield = comb_bkg_coeff.getVal() + jpsi_bkg_coeff.getVal()
         toy_background = bkg_only_model.fit_model.generate(ROOT.RooArgSet(b_mass_branch), bkg_yield)
-
+        
         # Generate expected signal from MC shape and jpsi-extrapolated yield
         N_sig_exp = 0.0018 * 66700.91
         toy_signal = model_sig_template.fit_model.generate(ROOT.RooArgSet(b_mass_branch), N_sig_exp)
 
         # Create toy dataset for final fit
-        toy_dataset = dataset_data.Clone('dataset_data'+fit_params.channel_label)
+        toy_dataset = dataset_data.emptyClone('dataset_data'+fit_params.channel_label)
         toy_dataset.append(toy_background)
         toy_dataset.append(toy_signal)
         dataset_data = toy_dataset
+
+        # Temporary plot of just toy dataset 
+        tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
+        tmp_frame = b_mass_branch.frame()
+        toy_background.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
+        toy_signal.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
+        toy_dataset.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kBlack))
+        tmp_frame.Draw()
+        tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_toy_datasets.pdf'))
 
     # Build final Roofit model
     model_final = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
