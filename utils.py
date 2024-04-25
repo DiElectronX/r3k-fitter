@@ -58,7 +58,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False):
 
     return template
 
-def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score_cut=None, binned=False, unblind=False):
+def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False):
     # Read data from config file or manually set input
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
@@ -66,7 +66,7 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, score
         f_in = ROOT.TFile(set_file, 'READ')
 
     # Read branches
-    tree = f_in.Get(dataset_params.tree_name)
+    tree = f_in.Get(dataset_params.tree_name if set_tree is None else set_tree)
     b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
     bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)

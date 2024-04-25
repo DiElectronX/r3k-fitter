@@ -210,13 +210,14 @@ def do_signal_region_fit(dataset_params, output_params, fit_params, args, write=
         write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, jpsi_bkg_pdf_norm])
 
     # Use function to grab yields
-    if get_yields:
+    # if get_yields:
+    if True:
         yields = {
             'yield_sig' : sig_coeff.getValV(),
             'yield_comb_bkg' : comb_bkg_coeff.getValV(),
             'yield_jpsi_bkg' : jpsi_bkg_coeff.getValV(),
         }
-
+        print(yields)
         return yields
 
 
@@ -283,12 +284,12 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         # Save fit shape parameters
         template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
 
-    # Fit partial background shape to BuToKstarJpsi_Pion MC
+    # Fit partial background shape to kstar MC
     if args.verbose:
         print('\nStarting Fit 3 - KStar Partial Template 1\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    b_mass_branch, dataset_kstar = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.bu_kstar_jpsi_pion_file)
+    b_mass_branch, dataset_kstar = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.bu_kstar_jpsi_pion_file, set_tree='Events')
 
     # Build Roofit model for exponential background
     model_kstar_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar, 'channel_label' : fit_params.channel_label})

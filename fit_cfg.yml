@@ -4,7 +4,9 @@ datasets:
   rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_rare.root
   jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_jpsi.root
   psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_psi2s.root
-  bu_kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/tmp/xval_data_files_updated/measurement_bu_kstar_jpsi_pion.root
+  bu_kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/jodedra/BackgroundSamples_2024/output/BuToKstarJPsi_SAMPLE/BuToKstarJPsi_pion.root
+  bd_kstar_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/jodedra/BackgroundSamples_2024/output/BdToK0starJPsi_SAMPLE/BdToK0starJPsi_kaon.root
+  bd_kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/jodedra/BackgroundSamples_2024/output/BdToK0starJPsi_SAMPLE/BdToK0starJPsi_pion.root
   tree_name: mytree
   b_mass_branch: Bmass
   ll_mass_branch: Mll
