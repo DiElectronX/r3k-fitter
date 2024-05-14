@@ -58,7 +58,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False):
 
     return template
 
-def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False):
+def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, extra_weight=None):
     # Read data from config file or manually set input
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
@@ -67,9 +67,9 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
 
     # Read branches
     tree = f_in.Get(dataset_params.tree_name if set_tree is None else set_tree)
-    b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'Mass [GeV]', *fit_params.full_mass_range)
-    bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'Weight', -100., 100.)
-    ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Weight', -100., 100.)
+    b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'B Candidate Mass [GeV]', *fit_params.full_mass_range)
+    bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
+    ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Di-Lepton Mass [GeV]', -100., 100.)
 
     # Set fit ranges
     b_mass_branch.setRange('full', *fit_params.full_mass_range)
@@ -83,13 +83,22 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
 
     if isData:
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        dataset = ROOT.RooDataHist('dataset_data'+fit_params.channel_label, 'Dataset', tree, variables) \
-            if binned else ROOT.RooDataSet('dataset_data'+fit_params.channel_label, 'Dataset', tree, variables)
+        tmp_dataset = ROOT.RooDataHist('tmp_dataset_data'+fit_params.channel_label, 'Dataset', tree, variables) \
+            if binned else ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', tree, variables)
     else:
         weight_branch = ROOT.RooRealVar(dataset_params.mc_weight_branch, 'Weight', -100., 100.)
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
-        dataset = ROOT.RooDataHist('dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, weight_branch.GetName()) \
-            if binned else ROOT.RooDataSet('dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, weight_branch.GetName())
+        weight_string = weight_branch.GetName()+'*'+str(extra_weight) if extra_weight else weight_branch.GetName()
+        if binned:
+            tmp_dataset = ROOT.RooDataHist('tmp_dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, weight_string) 
+        else:
+            tmp_dataset = ROOT.RooDataSet('tmp_dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, weight_string)
+
+    if extra_weight:
+        pass
+    else:
+        dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
+
 
     cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
         dataset_params.score_branch,

@@ -287,20 +287,73 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     # Fit partial background shape to kstar MC
     if args.verbose:
         print('\nStarting Fit 3 - KStar Partial Template 1\n{}'.format(50*'~'))
-
     # Import ROOT file dataset
-    b_mass_branch, dataset_kstar = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.bu_kstar_jpsi_pion_file, set_tree='Events')
+    b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
+    b_mass_branch, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)#, extra_weight=.1)
+    b_mass_branch, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)#, extra_weight=.1)
+    dataset_kstar_comb = dataset_kstar_pion.Clone('dataset_kstar_comb'+fit_params.channel_label)
+    dataset_kstar_comb.append(dataset_k0star_kaon)
+    dataset_kstar_comb.append(dataset_k0star_pion)
 
+    tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
+    tmp_frame = b_mass_branch.frame()
+    dataset_kstar_pion.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
+    dataset_k0star_kaon.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
+    dataset_k0star_pion.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kGreen), ROOT.RooFit.MarkerColor(ROOT.kGreen))
+    dataset_kstar_comb.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kBlack))
+    tmp_frame.Draw()
+    tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_jpsi_dataset_kstar_combs.pdf'))
+
+    '''
     # Build Roofit model for exponential background
-    model_kstar_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar, 'channel_label' : fit_params.channel_label})
+    model_kstar_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar_comb, 'channel_label' : fit_params.channel_label})
     model_kstar_template.add_background_model('part_bkg_pdf', 'kde', fit_params.fit_defaults, let_float=True)
     model_kstar_template.fit_model = model_kstar_template.part_bkg_pdf
 
     # Plot fit result
     model_kstar_template.plot_fit(
         b_mass_branch,
-        dataset_kstar,
+        dataset_kstar_comb,
         os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar_partial_template.pdf'),
+        bins=30,
+    )
+    '''
+
+    # Import ROOT file dataset
+    b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
+    b_mass_branch, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)#, extra_weight=.1)
+    dataset_kstar_pion_comb = dataset_kstar_pion.Clone('dataset_kstar_pion_comb'+fit_params.channel_label)
+    dataset_kstar_pion_comb.append(dataset_k0star_pion)
+
+    # Build Roofit model for exponential background
+    model_kstar_pion_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar_pion_comb, 'channel_label' : fit_params.channel_label})
+    model_kstar_pion_template.add_background_model('part_bkg_pdf_1', 'kde', fit_params.fit_defaults, let_float=True)
+    model_kstar_pion_template.fit_model = model_kstar_pion_template.part_bkg_pdf_1
+
+    # Plot fit result
+    model_kstar_pion_template.plot_fit(
+        b_mass_branch,
+        dataset_kstar_pion_comb,
+        os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar_partial_template_1.pdf'),
+        bins=30,
+    )
+
+    if args.verbose:
+        print('\nStarting Fit 3.5 - KStar Partial Template 2\n{}'.format(50*'~'))
+
+    # Import ROOT file dataset
+    b_mass_branch, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)#, extra_weight=.1)
+
+    # Build Roofit model for exponential background
+    model_kstar_kaon_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_k0star_kaon, 'channel_label' : fit_params.channel_label})
+    model_kstar_kaon_template.add_background_model('part_bkg_pdf_2', 'kde', fit_params.fit_defaults, let_float=True)
+    model_kstar_kaon_template.fit_model = model_kstar_kaon_template.part_bkg_pdf_2
+
+    # Plot fit result
+    model_kstar_kaon_template.plot_fit(
+        b_mass_branch,
+        dataset_k0star_kaon,
+        os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar_partial_template_2.pdf'),
         bins=30,
     )
 
@@ -321,30 +374,37 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     model_final.add_signal_model('sig_pdf', 'cb+cb', template, let_float=False)
     model_final.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
     # model_final.add_background_model('part_bkg_pdf', 'generic', fit_params.fit_defaults, let_float=True)
-    model_final.add_background_model('part_bkg_pdf', model_kstar_template.background_models['part_bkg_pdf'])
+    model_final.add_background_model('part_bkg_pdf_1', model_kstar_pion_template.background_models['part_bkg_pdf_1'])
+    model_final.add_background_model('part_bkg_pdf_2', model_kstar_kaon_template.background_models['part_bkg_pdf_2'])
 
-    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 0.8, 0.0, 5*dataset_data.numEntries())
-    comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 0.15,0.0, 5*dataset_data.numEntries())
-    part_bkg_coeff = ROOT.RooRealVar('part_bkg_coeff'+fit_params.channel_label, 'Partially Reconstructed Background Coefficient', 0.01,0.0, 5*dataset_data.numEntries())
+    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 60000, 0.0, 5*dataset_data.numEntries())
+    comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 5000,0.0, 15000)
+    part_bkg_1_coeff = ROOT.RooRealVar('part_bkg_1_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 1 Coefficient', 28941,0.0, 5*dataset_data.numEntries())
+    part_bkg_2_coeff = ROOT.RooRealVar('part_bkg_2_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 2 Coefficient', 20972,0.0, 5*dataset_data.numEntries())
+
     model_final.fit_model = ROOT.RooAddPdf(
         'pdf_sum_final',
         'Sum of Signal and Background PDFs',
         ROOT.RooArgList(
             model_final.sig_pdf,
             model_final.comb_bkg_pdf,
-            model_final.part_bkg_pdf,
+            model_final.part_bkg_pdf_1,
+            model_final.part_bkg_pdf_2,
         ),
         ROOT.RooArgList(
             sig_coeff,
             comb_bkg_coeff,
-            part_bkg_coeff,
+            part_bkg_1_coeff,
+            part_bkg_2_coeff,
         )
     )
 
     # Add gaussian contraints to fit parameters
     model_final.background_models['comb_bkg_pdf'].exp_slope.setConstant(False)
     model_final.add_constraints({
-        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope']), ROOT.RooFit.RooConst(10))
+        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope']), ROOT.RooFit.RooConst(10)),
+        'cb1_mean_constraint' : ROOT.RooGaussian('cb1_mean_constraint', 'cb1_mean_constraint', model_final.signal_models['sig_pdf'].cb1_mean, ROOT.RooFit.RooConst(template['cb1_mean']), ROOT.RooFit.RooConst(20)),
+        'cb2_mean_constraint' : ROOT.RooGaussian('cb2_mean_constraint', 'cb2_mean_constraint', model_final.signal_models['sig_pdf'].cb1_mean, ROOT.RooFit.RooConst(template['cb2_mean']), ROOT.RooFit.RooConst(20)),
     })
 
     # Fit model to data
@@ -359,13 +419,15 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         fit_components = [
             model_final.sig_pdf,
             model_final.comb_bkg_pdf,
-            model_final.part_bkg_pdf,
+            model_final.part_bkg_pdf_1,
+            model_final.part_bkg_pdf_2,
         ],
     )
 
     # Add normalization terms for Combine
     comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb_bkg_coeff.getVal(), 0, dataset_data.numEntries())
-    part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_coeff.getVal(), 0, dataset_data.numEntries())
+    part_bkg_pdf_1_norm = ROOT.RooRealVar('part_bkg_pdf_1'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_1_coeff.getVal(), 0, dataset_data.numEntries())
+    part_bkg_pdf_2_norm = ROOT.RooRealVar('part_bkg_pdf_2'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_2_coeff.getVal(), 0, dataset_data.numEntries())
 
     # Renormalize signal pdf
     _cb1_coeff = model_final.signal_models['sig_pdf'].cb1_coeff.getVal()
@@ -376,15 +438,18 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Write final fit to RooWorkspace
     if get_yields:
-        write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm])
+        write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_1_norm, part_bkg_pdf_2_norm])
 
     # Use function to grab yields
-    if True:
-        yields = {
-            'yield_sig' : sig_coeff.getValV(),
-            'yield_comb_bkg' : comb_bkg_coeff.getValV(),
-            'yield_part_bkg' : part_bkg_coeff.getValV(),
-        }
+    yields = {
+        'yield_sig' : sig_coeff.getValV(),
+        'yield_comb_bkg' : comb_bkg_coeff.getValV(),
+        'yield_part_bkg_1' : part_bkg_1_coeff.getValV(),
+        'yield_part_bkg_2' : part_bkg_2_coeff.getValV(),
+    }
+    print(yields)
+
+    if get_yields:
         return yields
 
 
@@ -469,7 +534,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     model_final.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
     model_final.add_background_model('part_bkg_pdf', 'generic', fit_params.fit_defaults, let_float=True)
 
-    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 5000, 0.0, 5*dataset_data.numEntries())
+    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 5000, 0.0, 1000)
     comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 0.15,0.0, 5*dataset_data.numEntries())
     part_bkg_coeff = ROOT.RooRealVar('part_bkg_coeff'+fit_params.channel_label, 'Partially Reconstructed Background Coefficient', 0.01,0.0, 5*dataset_data.numEntries())
     model_final.fit_model = ROOT.RooAddPdf(
@@ -525,13 +590,14 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, part_bkg_pdf_norm])
 
     # Use function to grab yields
-    if get_yields:
-        yields = {
-            'yield_sig' : sig_coeff.getValV(),
-            'yield_comb_bkg' : comb_bkg_coeff.getValV(),
-            'yield_part_bkg' : part_bkg_coeff.getValV(),
-        }
+    yields = {
+        'yield_sig' : sig_coeff.getValV(),
+        'yield_comb_bkg' : comb_bkg_coeff.getValV(),
+        'yield_part_bkg' : part_bkg_coeff.getValV(),
+    }
+    print(yields)
 
+    if get_yields:
         return yields
 
 
