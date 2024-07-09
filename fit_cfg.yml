@@ -1,12 +1,18 @@
 datasets:
-  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_data_slimmed.root
-  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_same_sign_electrons_slimmed.root
-  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_rare.root
-  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_jpsi.root
-  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_psi2s.root
-  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_kstar_jpsi_pion.root
-  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_k0star_jpsi_kaon.root
-  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/measurement_k0star_jpsi_pion.root
+  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_data_slimmed.root
+  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_same_sign_electrons.root
+  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_rare.root
+  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_jpsi.root
+  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_psi2s.root
+  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_kstar_jpsi_pion.root
+  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_jpsi_kaon.root
+  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_jpsi_pion.root
+  kstar_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_kstar_psi2s_pion.root
+  k0star_psi2s_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_psi2s_kaon.root
+  k0star_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_psi2s_pion.root
+  kstar_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_kstar_pion.root
+  k0star_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_kaon.root
+  k0star_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_pion.root
   tree_name: mytree
   b_mass_branch: Bmass
   ll_mass_branch: Mll
@@ -18,25 +24,31 @@ output:
 
 fit:
   full_mass_range: [4.7, 5.7]
-  bdt_score_cut: 3.76
+  bdt_score_cut: 4.29
   regions:
     jpsi:
       ll_mass_range: [2.95, 3.2]
       defaults:
-        cb1_coeff_sig_pdf:       [1., 0., 100000]
-        cb1_mean_sig_pdf:        [5.2, 5.1, 5.4]
-        cb1_sigma_sig_pdf:       [0.08, 0.01, 0.5]
-        cb1_alpha_sig_pdf:       [3., 1., 6.]
-        cb1_n_sig_pdf:           [5., 0.5, 100.]
-        cb2_coeff_sig_pdf:       [1., 0., 100000]
-        cb2_mean_sig_pdf:        [5.2, 5.1, 5.4]
-        cb2_sigma_sig_pdf:       [0.08, 0.01, 0.5]
-        cb2_alpha_sig_pdf:       [3., 1., 6.]
-        cb2_n_sig_pdf:           [5., 0.5, 100.]
-        exp_slope_comb_bkg_pdf:  [-2., -5., 0.]
-        exp_slope_part_bkg_pdf:  [5., 4.0, 10.]
-        erfc_mean_part_bkg_pdf:  [5., 4.95, 5.05]
-        erfc_sigma_part_bkg_pdf: [0.03, 0.01, 0.06]
+        dcb1_coeff_sig_pdf:        [95961, 0., 200000]
+        dcb1_mean_sig_pdf:         [5.28, 5.1, 5.4]
+        dcb1_sigma_sig_pdf:        [0.05, 0.01, 0.5]
+        dcb1_alpha1_sig_pdf:       [3.23, 1., 10.]
+        dcb1_n1_sig_pdf:           [6.59, 0.1, 100.]
+        dcb1_alpha2_sig_pdf:       [4.73, 1., 10.]
+        dcb1_n2_sig_pdf:           [8.62, 0.1, 100.]
+        dcb2_coeff_sig_pdf:        [20729, 0., 200000]
+        dcb2_mean_sig_pdf:         [5.17, 5.1, 5.4]
+        dcb2_sigma_sig_pdf:        [0.04, 0.01, 0.5]
+        dcb2_alpha1_sig_pdf:       [2.25, 1., 6.]
+        dcb2_n1_sig_pdf:           [1.63, 0.5, 100.]
+        dcb2_alpha2_sig_pdf:       [2.85, .1, 6.]
+        dcb2_n2_sig_pdf:           [7.86, 0.5, 100.]
+        exp_slope_comb_bkg_pdf:    [-2.3, -5., 0.]
+        exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
+        kde_mirror_sig_pdf: 'NoMirror'
+        kde_rho_sig_pdf:    2
         kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
         kde_rho_part_bkg_pdf_1:    2
         kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
@@ -44,33 +56,45 @@ fit:
     psi2s:
       ll_mass_range: [3.55, 3.8]
       defaults:
-        cb1_coeff_sig_pdf:       [1., 0., 100000]
-        cb1_mean_sig_pdf:        [5.2, 5.1, 5.4]
-        cb1_sigma_sig_pdf:       [0.08, 0.01, 0.5]
-        cb1_alpha_sig_pdf:       [3., 1., 6.]
-        cb1_n_sig_pdf:           [5., 0.5, 100.]
-        cb2_coeff_sig_pdf:       [1., 0., 100000]
-        cb2_mean_sig_pdf:        [5.2, 5.1, 5.4]
-        cb2_sigma_sig_pdf:       [0.08, 0.01, 0.5]
-        cb2_alpha_sig_pdf:       [3., 1., 6.]
-        cb2_n_sig_pdf:           [5., 0.5, 100.]
-        exp_slope_comb_bkg_pdf:  [-0.5, -100., 0.]
-        exp_slope_part_bkg_pdf:  [5., 4., 10.]
-        erfc_mean_part_bkg_pdf:  [5.08, 5.05, 5.1]
-        erfc_sigma_part_bkg_pdf: [0.03, 0.01, 0.06]
-        kde_mirror_part_bkg_pdf: 'MirrorAsymLeft'
-        kde_rho_part_bkg_pdf:    1
-    rare:
+        dcb1_coeff_sig_pdf:        [1., 0., 100000]
+        dcb1_mean_sig_pdf:         [5.2, 5.1, 5.4]
+        dcb1_sigma_sig_pdf:        [0.08, 0.01, 0.5]
+        dcb1_alpha1_sig_pdf:       [3., 1., 6.]
+        dcb1_n1_sig_pdf:           [5., 0.5, 100.]
+        dcb1_alpha2_sig_pdf:       [3., 1., 6.]
+        dcb1_n2_sig_pdf:           [5., 0.5, 100.]
+        dcb2_coeff_sig_pdf:        [1., 0., 100000]
+        dcb2_mean_sig_pdf:         [5.2, 5.1, 5.4]
+        dcb2_sigma_sig_pdf:        [0.08, 0.01, 0.5]
+        dcb2_alpha1_sig_pdf:       [3., 1., 6.]
+        dcb2_n1_sig_pdf:           [5., 0.5, 100.]
+        dcb2_alpha2_sig_pdf:       [3., 1., 6.]
+        dcb2_n2_sig_pdf:           [5., 0.5, 100.]
+        exp_slope_comb_bkg_pdf:    [-2., -5., 0.]
+        exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
+        kde_mirror_sig_pdf: 'NoMirror'
+        kde_rho_sig_pdf:    2
+        kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_1:    2
+        kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_2:    2
+    lowq2:
       ll_mass_range: [1.05, 2.45]
       blinded: [5.1, 5.4]
       defaults:
-        cb_mean_sig_pdf:         [5.27, 5.2, 5.3]
-        cb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
-        cb_alphaL_sig_pdf:       [0.77, 0.5, 2.]
-        cb_nL_sig_pdf:           [2.07, 1., 10.]
-        cb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
-        cb_nR_sig_pdf:           [3.48, 1., 10.]
+        dcb_mean_sig_pdf:         [5.27, 5.2, 5.3]
+        dcb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
+        dcb_alphaL_sig_pdf:       [0.77, 0.5, 2.]
+        dcb_nL_sig_pdf:           [2.07, 1., 10.]
+        dcb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
+        dcb_nR_sig_pdf:           [3.48, 1., 10.]
         exp_slope_comb_bkg_pdf:  [-1.46, -10., 0.]
         exp_slope_jpsi_bkg_pdf:  [-14.11, -50., 0.]
         kde_mirror_jpsi_bkg_pdf: 'MirrorLeft'
         kde_rho_jpsi_bkg_pdf:    2
+        kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_1:    2
+        kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_2:    2

@@ -19,8 +19,9 @@ def set_verbosity(args):
 
 def set_mode(dataset_params, output_params, fit_params, args):
     mode = args.mode
-
-    valid_file_key = [i for i in vars(dataset_params).keys() if mode+'_file' in i]
+    
+    file_mode = 'rare' if ('q2' in mode) else mode
+    valid_file_key = [i for i in vars(dataset_params).keys() if file_mode+'_file' in i]
     assert len(valid_file_key)==1
     dataset_params.mc_sig_file = getattr(dataset_params,valid_file_key[0])
 
@@ -32,27 +33,31 @@ def set_mode(dataset_params, output_params, fit_params, args):
     fit_params.blinded = fit_params.region.get('blinded')
 
 
-def save_params(params, template_filename, fit_params, args, get_params=False):
+def save_params(params, template_filename, fit_params, args, get_params=False, just_print=False):
     template = {}
     for param in params:
         for key in fit_params.fit_defaults.keys(): 
             if key in param.GetName():
                 template[key] = param.getVal()
 
-    if args.verbose:
+    if args.verbose or just_print:
         print('Fitted Template Parameters:')
         for k, v in template.items():
             print('\t'+k+' = '+str(round(v,2)))
+        
+        if just_print:
+            return
 
     if os.path.isfile(template_filename):
         with open(template_filename) as f:
             old_template = yaml.safe_load(f)
     else:
-        old_template = None
+        old_template = None 
 
     if old_template:
-        template.update(old_template)
-
+        old_template.update(template)
+        template = old_template
+   
     with open(template_filename, 'w') as f:
         yaml.dump(template, f)
 
@@ -96,6 +101,7 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
 
     if extra_weight:
         pass
+        dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
     else:
         dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
 

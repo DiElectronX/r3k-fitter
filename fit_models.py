@@ -1,9 +1,10 @@
+import os
 import ROOT
 from utils import *
 
 class PDFDict():
     def __init__(self, name, shape, xvar, parameters, dataset=None, let_float=False, channel=None):
-        allowed_shapes = ['dcb', 'cb+gauss', 'cb+cb', 'exp', 'generic', 'kde']
+        allowed_shapes = ['dcb', 'cb+gauss', 'dcb+dcb', 'cb+cb', 'exp', 'poly', 'generic', 'kde']
         assert shape in allowed_shapes, "Choose a PDF shape from list:{}".format(allowed_shapes)
 
         self.name = name
@@ -16,12 +17,12 @@ class PDFDict():
     def build_model(self, shape, xvar, parameters, let_float, dataset, label=''):
         if shape=='dcb':
             shape_dict = {
-                'cb_mean' :   'DS-CB: location parameter of the Gaussian component',
-                'cb_sigma' :  'DS-CB: width parameter of the Gaussian component',
-                'cb_alphaL' : 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-                'cb_nL' :     'DS-CB: exponent of power-law tail on the left',
-                'cb_alphaR' : 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-                'cb_nR' :     'DS-CB: exponent of power-law tail on the right',
+                'dcb_mean' :   'DS-CB: location parameter of the Gaussian component',
+                'dcb_sigma' :  'DS-CB: width parameter of the Gaussian component',
+                'dcb_alphaL' : 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
+                'dcb_nL' :     'DS-CB: exponent of power-law tail on the left',
+                'dcb_alphaR' : 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
+                'dcb_nR' :     'DS-CB: exponent of power-law tail on the right',
             }
 
             for par, desc in shape_dict.items():
@@ -35,7 +36,7 @@ class PDFDict():
             self.model = ROOT.RooTwoSidedCBShape(
                 self.name+self.channel_label,
                 'Double-sided crystal-ball pdf',
-                xvar, self.cb_mean, self.cb_sigma, self.cb_alphaL, self.cb_nL, self.cb_alphaR, self.cb_nR)
+                xvar, self.dcb_mean, self.dcb_sigma, self.dcb_alphaL, self.dcb_nL, self.dcb_alphaR, self.dcb_nR)
 
         if shape=='cb+gauss':
             shape_dict = {
@@ -72,6 +73,51 @@ class PDFDict():
                 'CB+Gauss',
                  ROOT.RooArgList(self.cb_pdf, self.gauss_pdf),
                  ROOT.RooArgList(self.cb_coeff, self.gauss_coeff)
+            )
+
+        if shape=='dcb+dcb':
+            shape_dict = {
+                'dcb1_coeff'  : 'DCB+DCB: DCB1 Coefficient', 
+                'dcb1_mean'   : 'DCB+DCB: Mean of DCB1 component', 
+                'dcb1_sigma'  : 'DCB+DCB: Width of DCB1 component', 
+                'dcb1_alpha1' : 'DCB+DCB: Location of left transition to a power law of DCB1 component', 
+                'dcb1_n1'     : 'DCB+DCB: Exponent of left power-law tail of DCB1 component', 
+                'dcb1_alpha2' : 'DCB+DCB: Location of right transition to a power law of DCB1 component', 
+                'dcb1_n2'     : 'DCB+DCB: Exponent of right power-law tail of DCB1 component', 
+                'dcb2_coeff'  : 'DCB+DCB: DCB2 Coefficient', 
+                'dcb2_mean'   : 'DCB+DCB: Mean of DCB2 component', 
+                'dcb2_sigma'  : 'DCB+DCB: Width of DCB2 component', 
+                'dcb2_alpha1' : 'DCB+DCB: Location of left transition to a power law of DCB2 component', 
+                'dcb2_n1'     : 'DCB+DCB: Exponent of left power-law tail of DCB2 component', 
+                'dcb2_alpha2' : 'DCB+DCB: Location of right transition to a power law of DCB2 component', 
+                'dcb2_n2'     : 'DCB+DCB: Exponent of right power-law tail of DCB2 component', 
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
+            self.dcb1_pdf = ROOT.RooTwoSidedCBShape(
+                'dcb1_pdf'+self.channel_label,
+                'DCB+DCB: DCB1 component',
+                xvar, self.dcb1_mean, self.dcb1_sigma, self.dcb1_alpha1, self.dcb1_n1, self.dcb1_alpha2, self.dcb1_n2)
+
+            self.dcb2_pdf = ROOT.RooTwoSidedCBShape(
+                'dcb2_pdf'+self.channel_label,
+                'DCB+DCB: DCB2 component',
+                xvar, self.dcb2_mean, self.dcb2_sigma, self.dcb2_alpha1, self.dcb2_n1, self.dcb2_alpha2, self.dcb2_n2)
+
+            #self.dcb1_coeff = ROOT.RooRealVar('dcb1_coeff'+self.channel_label, 'DCB1 Coefficient',1., 0.0, 1000000.)
+            #self.dcb2_coeff = ROOT.RooRealVar('dcb2_coeff'+self.channel_label, 'DCB2 Coefficient',1., 0.0, 1000000.)
+            self.model = ROOT.RooAddPdf(
+                self.name+self.channel_label,
+                'DCB+DCB',
+                 ROOT.RooArgList(self.dcb1_pdf, self.dcb2_pdf),
+                 ROOT.RooArgList(self.dcb1_coeff, self.dcb2_coeff)
             )
 
         if shape=='cb+cb':
@@ -127,6 +173,26 @@ class PDFDict():
                 )
 
             self.model = ROOT.RooExponential(self.name+self.channel_label, 'Exponential PDF', xvar, self.exp_slope)
+
+        if shape=='poly':
+            n_polypars = sum('poly_a' in s for s in parameters.keys())
+            shape_dict = {'poly_a{}'.format(i) : 'Poly: {}th coeff.'.format(i) for i in range(n_polypars)}
+            shape_dict.update({'poly_offset' : 'Poly: x-axis offset'})
+            
+            model_pars = []
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                roovar = ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt]
+                )
+                setattr(self, par, roovar)
+                model_pars.append(roovar)
+
+            diff = ROOT.RooFormulaVar('diff','{}-{}'.format(xvar.GetName(), self.poly_offset.GetName()), ROOT.RooArgList(xvar, self.poly_offset))
+
+            self.model = ROOT.RooPolynomial(self.name+self.channel_label, 'Exponential PDF', xvar, ROOT.RooArgList(*model_pars))
 
         if shape=='generic':
             shape_dict = {
@@ -231,12 +297,12 @@ class FitModel:
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
 
-    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full'):
+    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full', file_formats=['pdf', 'png'], legend=False):
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
 
-
-        root_colors = [ROOT.kBlue, ROOT.kGreen+3, ROOT.kRed+2, ROOT.kOrange-3, ROOT.kMagenta+1, ROOT.kCyan+1]
+        hex_colors = ['#000000', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+        root_colors = [ROOT.TColor.GetColor(col) for col in hex_colors]
         get_color = (col for col in root_colors)
 
         frame = branch.frame(
@@ -245,6 +311,8 @@ class FitModel:
             #fit_range,
             #fit_norm_range,
         )
+
+        leg = ROOT.TLegend(.1, .6, .4, .9)
 
         if fit_range!='full':
             dataset = dataset.reduce(ROOT.RooFit.CutRange(fit_range))
@@ -260,6 +328,8 @@ class FitModel:
         else:
             dataset.plotOn(frame,ROOT.RooFit.Name(dataset.GetName()))
 
+        leg.AddEntry(frame.findObject(dataset.GetName()), dataset.GetTitle(), 'PE')
+
         plot_model.plotOn(
             frame,
             ROOT.RooFit.Range('full'),
@@ -268,21 +338,25 @@ class FitModel:
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
         )
+        leg.AddEntry(frame.findObject(plot_model.GetName()), plot_model.GetTitle(), 'L')
 
         h_pull = frame.pullHist()
         frame_pull = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
         frame_pull.addPlotable(h_pull, 'P')
-
+        
         for comp in fit_components:
             plot_argset = ROOT.RooArgSet(comp)
+            plot_comp = ROOT.RooFit.Components(plot_argset)
             plot_model.plotOn(
                 frame,
-                ROOT.RooFit.Components(plot_argset),
+                plot_comp,
                 fit_range,
                 fit_norm_range,
                 ROOT.RooFit.LineStyle(ROOT.kDashed),
                 ROOT.RooFit.LineColor(next(get_color))
             )
+            print(plot_argset.GetName())
+            # leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
 
         chi2 = frame.chiSquare(
             plot_model.GetName(),
@@ -307,6 +381,9 @@ class FitModel:
         ax_y_main = frame.GetYaxis()
         ax_x_main = frame.GetXaxis()
         ax_x_main.SetLabelOffset(3.)
+        
+        if legend:
+            leg.Draw()
 
         label = ROOT.TLatex(0.65, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
         label.SetTextSize(0.08)
@@ -332,6 +409,7 @@ class FitModel:
         ax_x_pull.SetTitleSize(2.8*ax_x_main.GetTitleSize())
         ax_x_pull.SetLabelSize(2.8*ax_x_main.GetLabelSize())
 
-        c.SaveAs(output_filepath)
-        c.SaveAs(output_filepath.replace('pdf','png'))
+        path_stem, path_ext = output_filepath.rsplit('.',1)
+        for fmt in file_formats:
+            c.SaveAs(path_stem+'.'+fmt)
         c.Close()

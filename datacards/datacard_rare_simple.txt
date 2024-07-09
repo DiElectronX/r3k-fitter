@@ -1,0 +1,17 @@
+imax    * number of bins
+jmax    * number of processes minus 1
+kmax    * number of nuisance parameters
+--------------------------------------------------------------------------------
+shapes sig      rare_region fitter_outputs/workspace_rare.root workspace:sig_pdf_rare_region
+shapes comb_bkg rare_region fitter_outputs/workspace_rare.root workspace:comb_bkg_pdf_rare_region
+shapes jpsi_bkg rare_region fitter_outputs/workspace_rare.root workspace:jpsi_bkg_pdf_rare_region
+shapes data_obs rare_region fitter_outputs/workspace_rare.root workspace:dataset_data_rare_region
+--------------------------------------------------------------------------------
+bin          rare_region
+observation  -1
+--------------------------------------------------------------------------------
+bin          rare_region     rare_region     rare_region
+process      sig             comb_bkg        jpsi_bkg
+process      0               1               2
+rate         100.0           1.0             1.0
+--------------------------------------------------------------------------------
