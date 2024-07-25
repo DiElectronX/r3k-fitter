@@ -29,6 +29,7 @@ def set_mode(dataset_params, output_params, fit_params, args):
     assert len(valid_fit_key)==1
     fit_params.region = fit_params.regions[valid_fit_key[0]]
     fit_params.channel_label = '_'+valid_fit_key[0]+'_region'
+    fit_params.ll_mass_range = fit_params.region['ll_mass_range']
     fit_params.fit_defaults = fit_params.region['defaults']
     fit_params.blinded = fit_params.region.get('blinded')
 
