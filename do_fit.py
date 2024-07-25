@@ -8,7 +8,7 @@ from fit_models import FitModel
 
 ALLOWED_MODES = ['jpsi', 'psi2s', 'lowq2']
 
-def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, toy_fit=False, unblinded=False):
+def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, toy_fit=True, unblinded=False):
     printlevel = set_verbosity(args)
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
@@ -194,10 +194,10 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         bkg_only_model.add_background_model('jpsi_bkg_pdf', model_jpsi_template.background_models['jpsi_bkg_pdf'])
         bkg_only_model.add_background_model('part_bkg_pdf_1', model_kstar_pion_template.background_models['part_bkg_pdf_1'])
         bkg_only_model.add_background_model('part_bkg_pdf_2', model_kstar_kaon_template.background_models['part_bkg_pdf_2'])
-        comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 0.15, 0., 100000.)
-        jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 540., 0., 100000.)
-        part_bkg_1_coeff = ROOT.RooRealVar('part_bkg_1_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 1 Coefficient', 100, 0, dataset_data.numEntries())
-        part_bkg_2_coeff = ROOT.RooRealVar('part_bkg_2_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 2 Coefficient', 1590, 0, dataset_data.numEntries())
+        comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 264, 0., 100000.)
+        jpsi_bkg_coeff = ROOT.RooRealVar('jpsi_bkg_coeff'+fit_params.channel_label, 'J/Psi Leakage Background Coefficient', 75, 0., 100000.)
+        part_bkg_1_coeff = ROOT.RooRealVar('part_bkg_1_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 1 Coefficient', 4, 0, dataset_data.numEntries())
+        part_bkg_2_coeff = ROOT.RooRealVar('part_bkg_2_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 2 Coefficient', 53, 0, dataset_data.numEntries())
         bkg_only_model.fit_model = ROOT.RooAddPdf(
             'bkg_only_pdf',
             'Sum of Background PDFs',
@@ -224,7 +224,8 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         bkg_only_model.fit(dataset_data, fit_range='sb1,sb2', fit_norm_range='sb1,sb2', printlevel=printlevel)
 
         # Generate expected background from sideband fit
-        bkg_yield = comb_bkg_coeff.getVal() + jpsi_bkg_coeff.getVal()
+        print('--->', comb_bkg_coeff.getVal(), jpsi_bkg_coeff.getVal(),  part_bkg_1_coeff.getVal(),  part_bkg_2_coeff.getVal())
+        bkg_yield = comb_bkg_coeff.getVal() + jpsi_bkg_coeff.getVal() + part_bkg_1_coeff.getVal() + part_bkg_2_coeff.getVal()
         toy_background = bkg_only_model.fit_model.generate(ROOT.RooArgSet(b_mass_branch), bkg_yield)
         
         # Generate expected signal from MC shape and jpsi-extrapolated yield
@@ -242,7 +243,8 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         tmp_frame = b_mass_branch.frame()
         toy_background.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
         toy_signal.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
-        toy_dataset.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kBlack))
+        toy_dataset.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kGreen))
+        # bkg_only_model.fit_model.plotOn(tmp_frame, ROOT.RooFit.Range('sb1,sb2'), ROOT.RooFit.NormRange('sb1,sb2'),ROOT.RooFit.LineStyle(ROOT.kSolid),ROOT.RooFit.LineColor(ROOT.kBlack))
         tmp_frame.Draw()
         tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_toy_datasets.pdf'))
 
@@ -265,8 +267,10 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     model_comps = [model_final.comb_bkg_pdf, model_final.jpsi_bkg_pdf, model_final.part_bkg_pdf_1, model_final.part_bkg_pdf_2]
     model_coeffs = [comb_bkg_coeff, jpsi_bkg_coeff, part_bkg_1_coeff, part_bkg_2_coeff]
     if toy_fit:
-        model_comps.insert(0,model_final.sig_pdf)
-        model_coeffs.insert(0,sig_coeff)
+        model_comps.append(model_final.sig_pdf)
+        model_coeffs.append(sig_coeff)
+        # model_comps.insert(0,model_final.sig_pdf)
+        # model_coeffs.insert(0,sig_coeff)
 
     model_final.fit_model = ROOT.RooAddPdf(
         'pdf_sum_final',
@@ -295,10 +299,10 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             'dcb_mean_constraint' : ROOT.RooGaussian('dcb_mean_constraint', 'dcb_mean_constraint', model_final.signal_models['sig_pdf'].dcb_mean, ROOT.RooFit.RooConst(template['dcb_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
             'dcb_sigma_constraint' : ROOT.RooGaussian('dcb_sigma_constraint', 'dcb_sigma_constraint', model_final.signal_models['sig_pdf'].dcb_sigma, ROOT.RooFit.RooConst(template['dcb_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
         })
-
+    print(model_final.constraints)
     # Fit model to data
-    fit_range = 'sb1,sb2' if fit_params.blinded else 'full'
-    fit_norm_range = 'sb1,sb2' if fit_params.blinded else 'full'
+    fit_range = 'full' if toy_fit else 'sb1,sb2'
+    fit_norm_range = 'full' if toy_fit else 'sb1,sb2'
     model_final.fit(dataset_data, fit_range=fit_range, fit_norm_range=fit_norm_range, printlevel=printlevel)
     params = model_final.fit_result.floatParsFinal()
 
