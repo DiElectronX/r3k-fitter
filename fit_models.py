@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import ROOT
 from utils import *
 
@@ -278,6 +279,7 @@ class FitModel:
         self.background_models[name] = model_dict
         setattr(self, name, model_dict.model)
 
+
     def add_constraints(self, constraint_dict):
         self.constraints.update(constraint_dict)
 
@@ -408,7 +410,9 @@ class FitModel:
         ax_y_pull.SetLabelSize(2.8*ax_y_main.GetLabelSize())
         ax_x_pull.SetTitleSize(2.8*ax_x_main.GetTitleSize())
         ax_x_pull.SetLabelSize(2.8*ax_x_main.GetLabelSize())
-
+        
+        if isinstance(output_filepath,Path):
+            output_filepath = str(output_filepath)  
         path_stem, path_ext = output_filepath.rsplit('.',1)
         for fmt in file_formats:
             c.SaveAs(path_stem+'.'+fmt)

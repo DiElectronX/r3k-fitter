@@ -8,6 +8,7 @@ def makedirs(path):
     except OSError:
         pass
 
+
 def set_verbosity(args):
     ROOT.gROOT.SetBatch(True)
     ROOT.gErrorIgnoreLevel = ROOT.kInfo if args.verbose else ROOT.kWarning
@@ -63,6 +64,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False, j
         yaml.dump(template, f)
 
     return template
+
 
 def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, extra_weight=None):
     # Read data from config file or manually set input
