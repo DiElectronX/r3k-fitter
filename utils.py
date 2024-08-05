@@ -8,6 +8,7 @@ def makedirs(path):
     except OSError:
         pass
 
+
 def set_verbosity(args):
     ROOT.gROOT.SetBatch(True)
     ROOT.gErrorIgnoreLevel = ROOT.kInfo if args.verbose else ROOT.kWarning
@@ -29,6 +30,7 @@ def set_mode(dataset_params, output_params, fit_params, args):
     assert len(valid_fit_key)==1
     fit_params.region = fit_params.regions[valid_fit_key[0]]
     fit_params.channel_label = '_'+valid_fit_key[0]+'_region'
+    fit_params.ll_mass_range = fit_params.region['ll_mass_range']
     fit_params.fit_defaults = fit_params.region['defaults']
     fit_params.blinded = fit_params.region.get('blinded')
 
@@ -62,6 +64,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False, j
         yaml.dump(template, f)
 
     return template
+
 
 def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, extra_weight=None):
     # Read data from config file or manually set input
