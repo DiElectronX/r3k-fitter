@@ -82,7 +82,12 @@ def estimate_lowq2_signal(n_jpsik, eff_eek, eff_jpsik, n_jpsik_err=None, eff_eek
         _BR_BKEE = ufloat(BR_BKEE,0)
         _BR_BJPSI = ufloat(BR_BJPSI,0)
         _BR_JPSIEE = ufloat(BR_JPSIEE,0)
-        n_signal = _n_jpsik * _BR_BKEE * _eff_eek / (_BR_BJPSI * _BR_JPSIEE * _eff_jpsik)
+
+        try:
+            n_signal = _n_jpsik * _BR_BKEE * _eff_eek / (_BR_BJPSI * _BR_JPSIEE * _eff_jpsik)
+        except ZeroDivisionError:
+            return 0, 0
+
         return n_signal.n, n_signal.std_dev
     else:
         return n_signal
@@ -95,15 +100,6 @@ def estimate_significance(n_sig, n_bkg, n_sig_err=None, n_bkg_err=None):
         return significance, significance_err
     else:
         return significance
-
-
-def integrate(var, model, model_yield, integral_range, fit_result):
-    var.setRange('int_range', *integral_range)
-    integral_unscaled = model.createIntegral(ROOT.RooArgSet(var),ROOT.RooArgSet(var),'int_range')
-    integral = integral_unscaled.getVal() * model_yield.getVal() if (integral_unscaled.getVal()*model_yield.getVal())>0.1 else 0
-    integral_err = integral * np.linalg.norm([integral_unscaled.getPropagatedError(fit_result, ROOT.RooArgSet(var))/integral_unscaled.getVal(), model_yield.getError()/model_yield.getVal()])
-
-    return integral, integral_err
 
 
 def do_lowq2_quickfits(bdt_cuts, fit_defaults, dataset_params, output_params, fit_params, args, integral=None):
@@ -160,9 +156,9 @@ def do_lowq2_quickfits(bdt_cuts, fit_defaults, dataset_params, output_params, fi
             final_yield, final_yield_err = integrate(b_mass_branch, model_final.fit_model, bkg_coeff, integral, model_final.fit_result)
         else:
             final_yield, final_yield_err = bkg_coeff.getVal(), bkg_coeff.getError()
-
-        final_yields = np.append(final_yield,final_yields)
-        final_yield_errs = np.append(final_yield_err,final_yield_errs)
+        
+        final_yields = np.append(final_yields,final_yield)
+        final_yield_errs = np.append(final_yield_errs,final_yield_err)
 
     return final_yields, final_yield_errs
 
@@ -274,12 +270,12 @@ def do_jpsi_quickfits(bdt_cuts, fit_defaults, dataset_params, output_params, fit
         )
 
         if integral:
-            final_yield, final_yield_err = integrate(b_mass_branch, model_final.fit_model, sig_coeff, integral, model_final.fit_result)
+            final_yield, final_yield_err = integrate(b_mass_branch, model_final.sig_pdf, sig_coeff, integral, model_final.fit_result)
         else:
             final_yield, final_yield_err = sig_coeff.getVal(), sig_coeff.getError()
 
-        final_yields = np.append(final_yield,final_yields)
-        final_yield_errs = np.append(final_yield_err,final_yield_errs)
+        final_yields = np.append(final_yields,final_yield)
+        final_yield_errs = np.append(final_yield_errs,final_yield_err)
 
     return final_yields, final_yield_errs
 
@@ -336,14 +332,21 @@ def significance_scan(dataset_params, output_params, fit_params, args):
         'score' : np.array([]),
         'significance' : np.array([]),
         'significance_err' : np.array([]),
+        'n_eek_bkg' : np.array([]),
+        'n_eek_bkg_err' : np.array([]),
+        'n_eek_sig' : np.array([]),
+        'n_eek_sig_err' : np.array([]),
+        'n_jpsik_sig' : np.array([]),
+        'n_jpsik_sig_err' : np.array([]),
         'eff_eek' : np.array([]),
         'eff_eek_err' : np.array([]),
         'eff_jpsik' : np.array([]),
         'eff_jpsik_err' : np.array([]),
     }
 
-    scan_range = np.linspace(1,7,30)
+    scan_range = np.linspace(1,10,30)
     n_lowq2_bkg_list, n_lowq2_bkg_err_list = do_lowq2_quickfits(scan_range, lowq2_fit_defaults, dataset_params, output_params, fit_params, args, integral=(5.1,5.4))
+
     n_jpsi_sig_list, n_jpsi_sig_err_list = do_jpsi_quickfits(scan_range, jpsi_fit_defaults, dataset_params, output_params, fit_params, args, integral=(5.1,5.4))
 
     for bdt_cut,n_lowq2_bkg,n_lowq2_bkg_err,n_jpsi_sig,n_jpsi_sig_err in loop_wrapper(zip(scan_range,n_lowq2_bkg_list, n_lowq2_bkg_err_list,n_jpsi_sig_list, n_jpsi_sig_err_list), args, title='Calculating Significances'):
@@ -355,6 +358,12 @@ def significance_scan(dataset_params, output_params, fit_params, args):
         outputs['score'] = np.append(outputs['score'], bdt_cut)
         outputs['significance'] = np.append(outputs['significance'], significance)
         outputs['significance_err'] = np.append(outputs['significance_err'], significance_err)
+        outputs['n_eek_sig'] = np.append(outputs['n_eek_sig'], n_lowq2_sig)
+        outputs['n_eek_sig_err'] = np.append(outputs['n_eek_sig_err'], n_lowq2_sig_err)
+        outputs['n_eek_bkg'] = np.append(outputs['n_eek_bkg'], n_lowq2_bkg)
+        outputs['n_eek_bkg_err'] = np.append(outputs['n_eek_bkg_err'], n_lowq2_bkg_err)
+        outputs['n_jpsik_sig'] = np.append(outputs['n_jpsik_sig'], n_jpsi_sig)
+        outputs['n_jpsik_sig_err'] = np.append(outputs['n_jpsik_sig_err'], n_jpsi_sig_err)
         outputs['eff_eek'] = np.append(outputs['eff_eek'], eff_eek)
         outputs['eff_eek_err'] = np.append(outputs['eff_eek_err'], eff_eek_err)
         outputs['eff_jpsik'] = np.append(outputs['eff_jpsik'], eff_jpsik)

@@ -1,6 +1,7 @@
 import os
 import yaml
 import ROOT
+import numpy as np
 
 def makedirs(path):
     try:
@@ -149,3 +150,21 @@ def write_workspace(output_params, args, model, extra_objs=[]):
 
     workspace.Write()
     f_out.Close()
+
+
+def integrate(var, model, model_yield, integral_range, fit_result):
+    xset = ROOT.RooArgSet(var)
+    nset = ROOT.RooFit.NormSet(xset)
+    var.setRange('int_range', *integral_range)
+    rangeset = ROOT.RooFit.Range('int_range')
+    integral_unscaled = model.createIntegral(xset,nset,rangeset)
+    final_yield = np.sum([y.getVal() for y in model_yield]) if isinstance(model_yield,list) else model_yield.getVal()
+    final_yield_err = np.sqrt(np.sum([y.getError()**2 for y in model_yield])) if isinstance(model_yield,list) else model_yield.getError()
+    integral = integral_unscaled.getVal() * final_yield
+    
+    try:
+        integral_err = integral * np.linalg.norm([integral_unscaled.getPropagatedError(fit_result, ROOT.RooArgSet(var))/integral_unscaled.getVal(), final_yield_err/final_yield])
+    except ZeroDivisionError:
+        return 0, 0
+
+    return integral, integral_err

@@ -299,7 +299,7 @@ class FitModel:
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
 
-    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full', file_formats=['pdf', 'png'], legend=False):
+    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full', file_formats=['pdf', 'png'], fit_result=None, legend=False, extra_text=None):
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
 
@@ -357,7 +357,6 @@ class FitModel:
                 ROOT.RooFit.LineStyle(ROOT.kDashed),
                 ROOT.RooFit.LineColor(next(get_color))
             )
-            print(plot_argset.GetName())
             # leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
 
         chi2 = frame.chiSquare(
@@ -365,6 +364,8 @@ class FitModel:
             dataset.GetName(),
             len(plot_model.getParameters(dataset)),
         )
+
+        pvalue = ROOT.Math.chisquared_cdf_c(frame.chiSquare(plot_model.GetName(),dataset.GetName()), len(plot_model.getParameters(dataset)))
 
         c = ROOT.TCanvas('c', ' ', 800, 600)
         pad1 = ROOT.TPad('pad1', 'pad1', 0, 0.3, 1, 1.0)
@@ -387,10 +388,21 @@ class FitModel:
         if legend:
             leg.Draw()
 
-        label = ROOT.TLatex(0.65, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
-        label.SetTextSize(0.08)
-        label.SetNDC(ROOT.kTRUE)
-        label.Draw()
+        chi2_text = ROOT.TLatex(0.65, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
+        chi2_text.SetTextSize(0.07)
+        chi2_text.SetNDC(ROOT.kTRUE)
+        chi2_text.Draw()
+
+        pvalue_text = ROOT.TLatex(0.65, 0.7, 'p = {}'.format(pvalue // 0.0001 / 10000))
+        pvalue_text.SetTextSize(0.07)
+        pvalue_text.SetNDC(ROOT.kTRUE)
+        pvalue_text.Draw()
+
+        if extra_text:
+            text = ROOT.TLatex(0.65, 0.6, extra_text)
+            text.SetTextSize(0.07)
+            text.SetNDC(ROOT.kTRUE)
+            text.Draw()
 
         pad2.cd()
         frame_pull.Draw()

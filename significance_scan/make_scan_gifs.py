@@ -10,7 +10,6 @@ import io
 def pdf_to_animation(pdf_files, output_file='animation.mp4', fps=4):
     images = []
 
-    # Convert PDF pages to images
     for pdf_file in pdf_files:
         doc = fitz.open(pdf_file)
         for page_num in range(len(doc)):
@@ -19,7 +18,6 @@ def pdf_to_animation(pdf_files, output_file='animation.mp4', fps=4):
             img = Image.open(io.BytesIO(pix.tobytes()))
             images.append(img)
 
-    # Create animation
     fig, ax = plt.subplots()
     ims = []
 
@@ -28,8 +26,6 @@ def pdf_to_animation(pdf_files, output_file='animation.mp4', fps=4):
         ims.append([im])
 
     ani = animation.ArtistAnimation(fig, ims, interval=1000/fps, blit=True, repeat_delay=1000)
-
-    # Save the animation
     ani.save(output_file, writer='pillow')
 
 

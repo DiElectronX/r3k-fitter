@@ -636,7 +636,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
 
         fit_params_loose = copy.deepcopy(fit_params)
         fit_params_loose.full_mass_range = [4.5,5.7]
-        b_mass_branch, dataset_samesign_loose = prepare_inputs(dataset_params, fit_params_loose, isData=True, set_file=dataset_params.samesign_data_file, score_cut=-5.)
+        _, dataset_samesign_loose = prepare_inputs(dataset_params, fit_params_loose, isData=True, set_file=dataset_params.samesign_data_file, score_cut=-5.)
         tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
         tmp_frame = b_mass_branch.frame()
         dataset_samesign_loose.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
@@ -644,7 +644,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_samesigndata_loose.pdf'))
 
         # Import ROOT file dataset
-        b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesign_data_file, score_cut=0.)
+        _, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesign_data_file, score_cut=0.)
 
         # Build Roofit model for exponential background
         model_comb_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
@@ -669,9 +669,9 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     if args.verbose:
         print('\nStarting Fit 3 - KStar Partial Template 1\n{}'.format(50*'~'))
     # Import ROOT file dataset
-    b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_psi2s_pion_file)
-    b_mass_branch, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_kaon_file)#, extra_weight=.1)
-    b_mass_branch, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_pion_file)#, extra_weight=.1)
+    _, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_psi2s_pion_file)
+    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_kaon_file)#, extra_weight=.1)
+    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_pion_file)#, extra_weight=.1)
     dataset_kstar_comb = dataset_kstar_pion.Clone('dataset_kstar_comb'+fit_params.channel_label)
     dataset_kstar_comb.append(dataset_k0star_kaon)
     dataset_kstar_comb.append(dataset_k0star_pion)
@@ -706,8 +706,8 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     '''
 
     # Import ROOT file dataset
-    b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_psi2s_pion_file)
-    b_mass_branch, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_pion_file)#, extra_weight=.1)
+    _, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_psi2s_pion_file)
+    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_pion_file)#, extra_weight=.1)
     dataset_kstar_pion_comb = dataset_kstar_pion.Clone('dataset_kstar_pion_comb'+fit_params.channel_label)
     dataset_kstar_pion_comb.append(dataset_k0star_pion)
 
@@ -728,7 +728,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         print('\nStarting Fit 3.5 - KStar Partial Template 2\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    b_mass_branch, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_kaon_file)#, extra_weight=.1)
+    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_psi2s_kaon_file)#, extra_weight=.1)
 
     # Build Roofit model for exponential background
     model_kstar_kaon_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_k0star_kaon, 'channel_label' : fit_params.channel_label})
@@ -753,7 +753,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             template = yaml.safe_load(file)
 
     # Import ROOT file dataset
-    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
+    _, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
 
     # Build final Roofit model
     model_final = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
@@ -824,6 +824,8 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             model_final.part_bkg_pdf_1,
             model_final.part_bkg_pdf_2,
         ],
+		fit_result=model_final.fit_result,
+		extra_text='N_{{#psi(2s)}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
     )
 
     # Add normalization terms for Combine
