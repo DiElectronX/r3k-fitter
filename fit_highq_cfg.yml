@@ -1,0 +1,184 @@
+datasets:
+  data_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_data.root
+  samesign_data_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_same_sign_electrons.root
+  rare_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_rare_mass.root
+  high_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_rare_mass.root
+  jpsi_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_jpsi.root
+  psi2s_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_psi2s.root
+
+  Buto_kstar_jpsi_pion_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_BuToKstarJPsi_pion.root
+
+  B0_k0star_jpsi_kaon_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_BdToK0starJPsi_kaon.root
+  B0_k0star_jpsi_pion_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_BdToK0starJPsi_pion.root
+
+  B0_psi2s_kplus_piminus_pionhypothesis_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_bdto_psi2s_kplus_piminus_pionhypothesis.root
+  B0_psi2s_kplus_piminus_kaonhypothesis_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_bdto_psi2s_kplus_piminus_kaonhypothesis.root
+
+  Buto_psi2s_kstarplus_kplus_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_buto_psi2s_kstarplus_kplus.root
+  Buto_psi2s_pi_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_buto_psi2s_pi.root  
+  B0_psi2s_kstar_kaon_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_PSI2S_B0_KSTAR_KAON.root
+  B0_psi2s_kstar_pion_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_PSI2S_B0_KSTAR_PION.root
+ 
+  tree_name: mytree
+  b_mass_branch: Bmass
+  ll_mass_branch: Mll
+  score_branch: bdt_score
+  mc_weight_branch: trig_wgt
+
+
+output:
+  output_dir: fitter_outputs/
+
+
+fit:
+  full_mass_range: [4.5, 6.0]
+  bdt_score_cut: 4.29
+  regions:
+    jpsi:
+      ll_mass_range: [2.95, 3.2]
+      defaults:
+        dcb1_coeff_sig_pdf:        [95961, 0., 200000]
+        dcb1_mean_sig_pdf:         [5.28, 5.1, 5.4]
+        dcb1_sigma_sig_pdf:        [0.05, 0.01, 0.5]
+        dcb1_alpha1_sig_pdf:       [3.23, 1., 10.]
+        dcb1_n1_sig_pdf:           [6.59, 0.1, 100.]
+        dcb1_alpha2_sig_pdf:       [4.73, 1., 10.]
+        dcb1_n2_sig_pdf:           [8.62, 0.1, 100.]
+        dcb2_coeff_sig_pdf:        [20729, 0., 200000]
+        dcb2_mean_sig_pdf:         [5.17, 5.1, 5.4]
+        dcb2_sigma_sig_pdf:        [0.04, 0.01, 0.5]
+        dcb2_alpha1_sig_pdf:       [2.25, 1., 6.]
+        dcb2_n1_sig_pdf:           [1.63, 0.5, 100.]
+        dcb2_alpha2_sig_pdf:       [2.85, .1, 6.]
+        dcb2_n2_sig_pdf:           [7.86, 0.5, 100.]
+        exp_slope_comb_bkg_pdf:    [-2.3, -5., 0.]
+        exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
+        kde_mirror_sig_pdf: 'NoMirror'
+        kde_rho_sig_pdf:    2
+        kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_1:    2
+        kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_2:    2
+    psi2s:
+      ll_mass_range: [3.55, 3.8]
+      defaults:
+        dcb1_coeff_sig_pdf:        [1., 0., 100000]
+        dcb1_mean_sig_pdf:         [5.2, 5.1, 5.4]
+        dcb1_sigma_sig_pdf:        [0.08, 0.01, 0.5]
+        dcb1_alpha1_sig_pdf:       [3., 1., 6.]
+        dcb1_n1_sig_pdf:           [5., 0.5, 100.]
+        dcb1_alpha2_sig_pdf:       [3., 1., 6.]
+        dcb1_n2_sig_pdf:           [5., 0.5, 100.]
+        dcb2_coeff_sig_pdf:        [1., 0., 100000]
+        dcb2_mean_sig_pdf:         [5.2, 5.1, 5.4]
+        dcb2_sigma_sig_pdf:        [0.08, 0.01, 0.5]
+        dcb2_alpha1_sig_pdf:       [3., 1., 6.]
+        dcb2_n1_sig_pdf:           [5., 0.5, 100.]
+        dcb2_alpha2_sig_pdf:       [3., 1., 6.]
+        dcb2_n2_sig_pdf:           [5., 0.5, 100.]
+        exp_slope_comb_bkg_pdf:    [-2., -5., 0.]
+        exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
+        kde_mirror_sig_pdf: 'NoMirror'
+        kde_rho_sig_pdf:    2
+        kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_1:    2
+        kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_2:    2
+    lowq2:
+      ll_mass_range: [1.05, 2.45]
+      blinded: [5.1, 5.4]
+      defaults:
+        dcb_mean_sig_pdf:         [5.27, 5.2, 5.3]
+        dcb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
+        dcb_alphaL_sig_pdf:       [0.77, 0.5, 2.]
+        dcb_nL_sig_pdf:           [2.07, 1., 10.]
+        dcb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
+        dcb_nR_sig_pdf:           [3.48, 1., 10.]
+        exp_slope_comb_bkg_pdf:  [-1.46, -10., 0.]
+        exp_slope_jpsi_bkg_pdf:  [-14.11, -50., 0.]
+        kde_mirror_jpsi_bkg_pdf: 'MirrorLeft'
+        kde_rho_jpsi_bkg_pdf:    2
+        kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_1:    2
+        kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_2:    2
+    high:
+      ll_mass_range: [3.85, 4.69]
+      blinded: [5.1, 5.4]
+      defaults:
+        dcb_mean_sig_pdf:         [5.27, 5.2, 5.3]
+        dcb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
+        dcb_alphaL_sig_pdf:       [0.77, 0.5, 2.]
+        dcb_nL_sig_pdf:           [2.07, 1., 10.]
+        dcb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
+        dcb_nR_sig_pdf:           [3.48, 1., 10.]
+
+
+        c0_comb_bkg_pdf : [0.1, -10000., 10000]
+        c1_comb_bkg_pdf : [0.1, -10000., 10000]
+        c2_comb_bkg_pdf : [0.1, -10000., 10000]
+        c3_comb_bkg_pdf : [0.1, -10000., 10000]
+        c4_comb_bkg_pdf : [0.1, -10000., 10000]
+
+
+
+
+
+
+
+
+
+
+
+
+        cb_mean_sig_pdf:         [5.27, 5.2, 5.3]
+        cb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
+        cb_alphaL_sig_pdf:       [0.77, 0.5, 2.]
+        cb_nL_sig_pdf:           [2.07, 1., 10.]
+        cb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
+        cb_nR_sig_pdf:           [3.48, 1., 10.]
+        exp_slope_comb_bkg_pdf:  [-1.46, -10., 0.]
+        exp_slope_psi2s_bkg_pdf:  [-14.11, -50., 0.]
+        kde_mirror_part_bkg_pdf_1: 'MirrorAsymLeftRight'
+        kde_rho_part_bkg_pdf_1:    1.5
+        kde_mirror_part_bkg_pdf_2: 'MirrorAsymLeftRight'
+        kde_rho_part_bkg_pdf_2:    1.5
+        kde_mirror_part_bkg_pdf_3: 'MirrorAsymLeftRight'
+        kde_rho_part_bkg_pdf_3:    1.5
+        exp_slope_other_bkg_pdf:  [-1.46, -10., 0.]
+        landau_sigma_psi2s_leakage_bkg_pdf: [0.1, 0.01, 0.2]
+        landau_mean_psi2s_leakage_bkg_pdf: [5.3, 5.3, 5.6]
+        landau_coeff_psi2s_leakage_bkg_pdf: [0.1, 0.01, 10000.]
+        gauss_sigma_psi2s_leakage_bkg_pdf: [0.1, 0.01, 0.8]
+        gauss_mean_psi2s_leakage_bkg_pdf: [5.0, 5.3, 5.7]
+        gauss_coeff_psi2s_leakage_bkg_pdf: [0.1, 0.01, 10000.]
+
+        landau_sigma_psi2s_pi_bkg_pdf: [0.1, 0.01, 0.2]
+        landau_mean_psi2s_pi_bkg_pdf: [5.3, 5.3, 6.0]
+        landau_coeff_psi2s_pi_bkg_pdf: [0.1, 0.01, 10000.]
+        gauss_sigma_psi2s_pi_bkg_pdf: [0.1, 0.01, 0.8]
+        gauss_mean_psi2s_pi_bkg_pdf: [5.0, 5.3, 6.0]
+        gauss_coeff_psi2s_pi_bkg_pdf: [0.1, 0.01, 10000.]
+
+        gauss1_sigma_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 1000.]
+        gauss1_mean_kstar0_kaon_partial_bkg_pdf: [5.3, 5.2, 6.0]
+        gauss1_coeff_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 100000.]
+        gauss2_sigma_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 1000.]
+        gauss2_mean_kstar0_kaon_partial_bkg_pdf: [5.3, 5.2, 6.0]
+        gauss2_coeff_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 100000.]
+
+        gauss1_sigma_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 10000.]
+        gauss1_mean_kstar0_pion_partial_bkg_pdf: [4.5, 4.5, 5.7]
+        gauss1_coeff_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 10000.]
+        gauss2_sigma_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 0.8]
+        gauss2_mean_kstar0_pion_partial_bkg_pdf: [4.5, 4.5, 5.7]
+        gauss2_coeff_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 10000.]
+
+
+        
+ 
+

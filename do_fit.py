@@ -6,7 +6,7 @@ from pprint import pprint
 from utils import *
 from fit_models import FitModel
 
-ALLOWED_MODES = ['jpsi', 'psi2s', 'lowq2']
+ALLOWED_MODES = ['jpsi', 'psi2s', 'lowq2', 'high']
 
 def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, toy_fit=True, unblinded=False):
     printlevel = set_verbosity(args)
@@ -337,6 +337,180 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         }
         pprint(yields)
         return yields
+
+
+def do_high2_signal_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, toy_fit=True, unblinded=False):
+    printlevel = set_verbosity(args)
+    set_mode(dataset_params, output_params, fit_params, args)
+    makedirs(output_params.output_dir)
+    
+    # Fit signal template from MC sample
+    if not args.cache:
+        if args.verbose:
+            print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
+
+        # Import ROOT file dataset
+        b_mass_branch, dataset_rare = prepare_inputs(dataset_params, fit_params, isData=False)
+
+        # Build Roofit model for signal
+        model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_rare, 'channel_label' : fit_params.channel_label})
+        model_sig_template.add_signal_model('sig_pdf', 'dcb', fit_params.fit_defaults, let_float=True)
+        model_sig_template.fit_model = model_sig_template.sig_pdf
+
+        # Fit model to data
+        model_sig_template.fit(dataset_rare, printlevel=printlevel)
+        params = model_sig_template.fit_result.floatParsFinal()
+
+        # Plot fit result
+        model_sig_template.plot_fit(
+            b_mass_branch,
+            dataset_rare,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_sig_template.pdf'),
+        )
+
+        # Save fit shape parameters
+        template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
+    # Fit combinatorial background to same-sign electron data
+    if not args.cache:
+        if args.verbose:
+            print('\nStarting Fit 2 - Combinatorial Background Template\n{}'.format(50*'~'))
+
+        # Import ROOT file dataset
+        b_mass_branch, dataset_samesign_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesign_data_file, score_cut=0., unblind=True)
+
+        # Build Roofit model for exponential background
+        model_comb_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_samesign_data, 'channel_label' : fit_params.channel_label})
+        model_comb_template.add_background_model('comb_bkg_pdf', 'cubic', fit_params.fit_defaults, let_float=True)
+        model_comb_template.fit_model = model_comb_template.comb_bkg_pdf
+
+        # Fit model to data
+        model_comb_template.fit(dataset_samesign_data, printlevel=printlevel)
+        params = model_comb_template.fit_result.floatParsFinal()
+
+        # Plot fit result
+        model_comb_template.plot_fit(
+            b_mass_branch,
+            dataset_samesign_data,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_comb_template.pdf'),
+            bins=30,
+        )
+
+        # Save fit shape parameters
+        template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
+        
+    # Fit psi2s leakage in high-q2 region from MC
+    
+    if not args.cache:
+        if args.verbose:
+            print('\nStarting Fit 3 - Psi2s Leakage Template\n{}'.format(50*'~'))
+
+        # Import ROOT file dataset
+        b_mass_branch, dataset_psi2s = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.psi2s_file)#, extra_weight=.1)
+
+        # Build Roofit model for landua background
+
+        model_psi2s_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_psi2s, 'channel_label' : fit_params.channel_label})
+        model_psi2s_template.add_background_model('psi2s_leakage_bkg_pdf', 'landau+gauss', fit_params.fit_defaults, let_float=True)
+        model_psi2s_template.fit_model = model_psi2s_template.psi2s_leakage_bkg_pdf
+
+
+        model_psi2s_template.fit(dataset_psi2s, printlevel=printlevel)
+        params = model_psi2s_template.fit_result.floatParsFinal()
+
+        model_psi2s_template.plot_fit(
+            b_mass_branch,
+            dataset_psi2s,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_psi2s_leakage_template.pdf'),
+            fit_components = [
+                model_psi2s_template.background_models['psi2s_leakage_bkg_pdf'].gauss,
+                model_psi2s_template.background_models['psi2s_leakage_bkg_pdf'].landau],
+            bins=30,
+        )
+        template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
+        
+    # Fit partial background shape to kstar0 MC
+    if not args.cache:
+        if args.verbose:
+            print('\nStarting Fit 4 - KStar Partial Template 1\n{}'.format(50*'~'))
+        # Import ROOT file dataset
+            
+        b_mass_branch, dataset_b0_psi2s_kstar0_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.B0_psi2s_kstar_pion_file)
+        model_kstar0_pion_partial_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_b0_psi2s_kstar0_pion, 'channel_label' : fit_params.channel_label})
+    
+        # Build Roofit model for exponential background
+        model_kstar0_pion_partial_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_b0_psi2s_kstar0_pion, 'channel_label' : fit_params.channel_label})
+        model_kstar0_pion_partial_template.add_background_model('kstar0_pion_partial_bkg_pdf', 'gauss+gauss', fit_params.fit_defaults, let_float=True)
+        model_kstar0_pion_partial_template.fit_model = model_kstar0_pion_partial_template.kstar0_pion_partial_bkg_pdf
+
+        model_kstar0_pion_partial_template.fit(dataset_b0_psi2s_kstar0_pion, printlevel=printlevel)
+        params = model_kstar0_pion_partial_template.fit_result.floatParsFinal()
+
+        model_kstar0_pion_partial_template.plot_fit(
+            b_mass_branch,
+            dataset_b0_psi2s_kstar0_pion,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar0_pion_partial_template.pdf'),
+            fit_components = [
+                model_kstar0_pion_partial_template.background_models['kstar0_pion_partial_bkg_pdf'].gauss1_pdf,
+                model_kstar0_pion_partial_template.background_models['kstar0_pion_partial_bkg_pdf'].gauss2_pdf],
+            bins=30,
+        )
+        template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
+    
+    # Fit partial background shape to kstar0 MC
+    if not args.cache:
+        if args.verbose:
+            print('\nStarting Fit 5 - KStar Partial Template 1\n{}'.format(50*'~'))
+        # Import ROOT file dataset
+            
+        b_mass_branch, dataset_b0_psi2s_kstar0_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.B0_psi2s_kstar_kaon_file)
+        model_kstar0_kaon_partial_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_b0_psi2s_kstar0_kaon, 'channel_label' : fit_params.channel_label})
+    
+        # Build Roofit model for exponential background
+        model_kstar0_kaon_partial_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_b0_psi2s_kstar0_kaon, 'channel_label' : fit_params.channel_label})
+        model_kstar0_kaon_partial_template.add_background_model('kstar0_kaon_partial_bkg_pdf', 'gauss+gauss', fit_params.fit_defaults, let_float=True)
+        model_kstar0_kaon_partial_template.fit_model = model_kstar0_kaon_partial_template.kstar0_kaon_partial_bkg_pdf
+
+        model_kstar0_kaon_partial_template.fit(dataset_b0_psi2s_kstar0_kaon, printlevel=printlevel)
+        params = model_kstar0_kaon_partial_template.fit_result.floatParsFinal()
+
+        model_kstar0_kaon_partial_template.plot_fit(
+            b_mass_branch,
+            dataset_b0_psi2s_kstar0_kaon,
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar0_partial_template.pdf'),
+            fit_components = [
+                model_kstar0_kaon_partial_template.background_models['kstar0_kaon_partial_bkg_pdf'].gauss1_pdf,
+                model_kstar0_kaon_partial_template.background_models['kstar0_kaon_partial_bkg_pdf'].gauss2_pdf],
+            bins=30,
+        )
+        template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args)
+    
+    # Add template for final fit
+    if args.verbose:
+        print('\nStarting Fit 5 - Final Model\n{}'.format(50*'~'))
+
+    if args.cache:
+        # Load fit shape templates from file
+        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), 'r') as file:
+            template = yaml.safe_load(file)
+            
+    # Import ROOT file dataset
+    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)           
+        
+    
+
+        
+        
+
+
+
+
+
+
+
+
+
+
+
 
 
 def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False):
@@ -881,6 +1055,11 @@ def main(args):
             print('\nRunning Fit in {} Mode\n{}'.format(args.mode, 50*'~'))
         do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args)
 
+        args.mode = 'high'
+        if args.verbose:
+            print('\nRunning Fit in {} Mode\n{}'.format(args.mode, 50*'~'))
+        do_high_signal_region_fit(dataset_params, output_params, fit_params, args)
+
     elif args.mode=='lowq2':
         do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args)
 
@@ -889,6 +1068,9 @@ def main(args):
 
     elif args.mode=='psi2s':
         do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args)
+
+    elif args.mode=='high':
+        do_high2_signal_region_fit(dataset_params, output_params, fit_params, args)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

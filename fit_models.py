@@ -5,7 +5,7 @@ from utils import *
 
 class PDFDict():
     def __init__(self, name, shape, xvar, parameters, dataset=None, let_float=False, channel=None):
-        allowed_shapes = ['dcb', 'cb+gauss', 'dcb+dcb', 'cb+cb', 'exp', 'poly', 'generic', 'kde']
+        allowed_shapes = ['dcb', 'cb+gauss', 'dcb+dcb', 'cb+cb', 'exp', 'poly', 'generic', 'kde', 'cubic','landau+gauss', 'gauss+gauss']
         assert shape in allowed_shapes, "Choose a PDF shape from list:{}".format(allowed_shapes)
 
         self.name = name
@@ -223,6 +223,89 @@ class PDFDict():
             kde_mirror = getattr(ROOT.RooKeysPdf, *parameters[name_fmt])
             name_fmt = 'kde_rho_'+label if label else 'kde_rho'
             self.model = ROOT.RooKeysPdf(self.name+self.channel_label, 'Kernel Density Estimate PDF', xvar, dataset, kde_mirror,*parameters[name_fmt])
+            
+        if shape=='cubic':
+            shape_dict = {
+                'c0' : 'Cubic: constant term',
+                'c1' : 'Cubic: linear term',
+                'c2' : 'Cubic: quadratic term',
+                'c3' : 'Cubic: cubic term',
+                'c4' : 'Cubic: cubic term',
+
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
+            self.model = ROOT.RooPolynomial(self.name+self.channel_label, 'Cubic PDF', xvar, ROOT.RooArgList(self.c0, self.c1, self.c2, self.c3, self.c4), lowestOrder=1)  
+
+        if shape=='landau+gauss':
+            shape_dict = {
+                'landau_mean' : 'Landau: location parameter',
+                'landau_sigma' : 'Landau: width parameter',
+                'landau_coeff' : 'Landau: coefficient',
+                'gauss_mean' :  'CB+Gauss: Mean of gaussian component',
+                'gauss_sigma' : 'CB+Gauss: Width of gaussian component',
+                'gauss_coeff' : 'CB+Gauss: Coefficient of gaussian component',
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
+            self.landau = ROOT.RooLandau('landau_pdf'+self.channel_label, 'Landau PDF', xvar, self.landau_mean, self.landau_sigma)
+            self.gauss = ROOT.RooGaussian('gauss_pdf'+self.channel_label, 'Gaussian PDF', xvar, self.gauss_mean, self.gauss_sigma)
+
+            self.model = ROOT.RooAddPdf(
+                 self.name+self.channel_label,
+                'Landau+Gauss',
+                 ROOT.RooArgList(self.landau, self.gauss),
+                 ROOT.RooArgList(self.landau_coeff, self.gauss_coeff)
+            )
+            
+        if shape=='gauss+gauss':
+            shape_dict = {
+                'gauss1_mean' : 'Gauss+Gauss: Mean of gaussian component 1',
+                'gauss1_sigma' : 'Gauss+Gauss: Width of gaussian component 1',
+                'gauss1_coeff' : 'Gauss+Gauss: Coefficient of gaussian component 1',
+                'gauss2_mean' : 'Gauss+Gauss: Mean of gaussian component 2',
+                'gauss2_sigma' : 'Gauss+Gauss: Width of gaussian component 2',
+                'gauss2_coeff' : 'Gauss+Gauss: Coefficient of gaussian component',
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+            
+            self.gauss1_pdf = ROOT.RooGaussian(
+                'gauss1_pdf'+self.channel_label,
+                'Gauss+Gauss: Gaussian component 1',
+                xvar, self.gauss1_mean, self.gauss1_sigma)
+
+            self.gauss2_pdf = ROOT.RooGaussian(
+                'gauss2_pdf'+self.channel_label,
+                'Gauss+Gauss: Gaussian component 2',
+                xvar, self.gauss2_mean, self.gauss2_sigma)
+            
+            self.model = ROOT.RooAddPdf(
+                    self.name+self.channel_label,
+                    'Gauss+Gauss',
+                    ROOT.RooArgList(self.gauss1_pdf, self.gauss2_pdf),
+                    ROOT.RooArgList(self.gauss1_coeff, self.gauss2_coeff)
+            )   
 
 
 class FitModel:
