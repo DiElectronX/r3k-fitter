@@ -339,7 +339,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         return yields
 
 
-def do_high2_signal_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, toy_fit=True, unblinded=False):
+def do_high2_signal_region_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, toy_fit=False, unblinded=False):
     printlevel = set_verbosity(args)
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
@@ -476,7 +476,7 @@ def do_high2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         model_kstar0_kaon_partial_template.plot_fit(
             b_mass_branch,
             dataset_b0_psi2s_kstar0_kaon,
-            os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar0_partial_template.pdf'),
+            os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar0_kaon_partial_template.pdf'),
             fit_components = [
                 model_kstar0_kaon_partial_template.background_models['kstar0_kaon_partial_bkg_pdf'].gauss1_pdf,
                 model_kstar0_kaon_partial_template.background_models['kstar0_kaon_partial_bkg_pdf'].gauss2_pdf],
@@ -494,7 +494,217 @@ def do_high2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             template = yaml.safe_load(file)
             
     # Import ROOT file dataset
-    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)           
+    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
+    
+    if toy_fit:
+        # Fit background-only model to data sidebands
+        bkg_only_model = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
+        bkg_only_model.add_background_model('comb_bkg_pdf', model_comb_template.background_models['comb_bkg_pdf'])
+        bkg_only_model.add_background_model('psi2s_leakage_bkg_pdf', model_psi2s_template.background_models['psi2s_leakage_bkg_pdf'])
+        bkg_only_model.add_background_model('kstar0_pion_partial_bkg_pdf', model_kstar0_pion_partial_template.background_models['kstar0_pion_partial_bkg_pdf'])
+        bkg_only_model.add_background_model('kstar0_kaon_partial_bkg_pdf', model_kstar0_kaon_partial_template.background_models['kstar0_kaon_partial_bkg_pdf'])
+        comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 264, 0., 100000.)
+        psi2s_leakage_bkg_coeff = ROOT.RooRealVar('psi2s_leakage_bkg_coeff'+fit_params.channel_label, 'Psi2s Leakage Background Coefficient', 100,20., 1000.)
+        kstar0_pion_partial_bkg_coeff = ROOT.RooRealVar('kstar0_pion_partial_bkg_coeff'+fit_params.channel_label, 'Kstar0 Pion Partial Background Coefficient', 132, 0, dataset_data.numEntries())
+        kstar0_kaon_partial_bkg_coeff = ROOT.RooRealVar('kstar0_kaon_partial_bkg_coeff'+fit_params.channel_label, 'Kstar0 Kaon Partial Background Coefficient', 372, 0, dataset_data.numEntries())
+        bkg_only_model.fit_model = ROOT.RooAddPdf(
+            'bkg_only_pdf',
+            'Sum of Background PDFs',
+            ROOT.RooArgList(
+                bkg_only_model.comb_bkg_pdf,
+                bkg_only_model.psi2s_leakage_bkg_pdf,
+                bkg_only_model.kstar0_pion_partial_bkg_pdf,
+                bkg_only_model.kstar0_kaon_partial_bkg_pdf,
+            ),
+            ROOT.RooArgList(
+                comb_bkg_coeff,
+                psi2s_leakage_bkg_coeff,
+                kstar0_pion_partial_bkg_coeff,
+                kstar0_kaon_partial_bkg_coeff,
+            )
+        )
+        kstar0_pion_partial_bkg_coeff.setConstant(False)
+        kstar0_kaon_partial_bkg_coeff.setConstant(False)
+        kstar_ratio = ROOT.RooFormulaVar('kstar_ratio', 'Ratio of K* decay channels', '@0/@1', ROOT.RooArgList(kstar0_pion_partial_bkg_coeff, kstar0_kaon_partial_bkg_coeff))
+        bkg_only_model.constraints.update({
+            'kstar_ratio_constraint' : ROOT.RooGaussian('kstar_ratio_constraint', 'kstar_ratio_constraint', kstar_ratio, ROOT.RooFit.RooConst(kstar_ratio.getVal()), ROOT.RooFit.RooConst(.01)),
+        })
+
+        bkg_only_model.fit(dataset_data, fit_range='sb1,sb2', fit_norm_range='sb1,sb2', printlevel=printlevel)
+
+        # Generate expected background from sideband fit
+        print('--->', comb_bkg_coeff.getVal(), psi2s_leakage_bkg_coeff.getVal(),  kstar0_pion_partial_bkg_coeff.getVal(),  kstar0_kaon_partial_bkg_coeff.getVal())
+        bkg_yield = comb_bkg_coeff.getVal() + psi2s_leakage_bkg_coeff.getVal() + kstar0_pion_partial_bkg_coeff.getVal() + kstar0_kaon_partial_bkg_coeff.getVal()
+        toy_background = bkg_only_model.fit_model.generate(ROOT.RooArgSet(b_mass_branch), bkg_yield)
+        
+        # Generate expected signal from MC shape and jpsi-extrapolated yield
+        N_sig_exp = 150
+        toy_signal = model_sig_template.fit_model.generate(ROOT.RooArgSet(b_mass_branch), N_sig_exp)
+        
+    
+        # Create toy dataset for final fit
+        toy_dataset = dataset_data.emptyClone('dataset_data'+fit_params.channel_label)
+        toy_dataset.append(toy_background)
+        toy_dataset.append(toy_signal)
+        dataset_data = toy_dataset
+
+        # Temporary plot of just toy dataset 
+        tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
+        tmp_frame = b_mass_branch.frame()
+        toy_background.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
+        toy_signal.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
+        toy_dataset.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kGreen))
+        # bkg_only_model.fit_model.plotOn(tmp_frame, ROOT.RooFit.Range('sb1,sb2'), ROOT.RooFit.NormRange('sb1,sb2'),ROOT.RooFit.LineStyle(ROOT.kSolid),ROOT.RooFit.LineColor(ROOT.kBlack))
+        tmp_frame.Draw()
+        tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_toy_datasets.pdf'))
+    
+ 
+    # Build final Roofit model
+    model_final = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
+    if toy_fit:
+        model_final.add_signal_model('sig_pdf', 'dcb', template, let_float=False)
+    #model_final.add_background_model('comb_bkg_pdf', 'cubic', template, let_float=False)
+    model_final.add_background_model('psi2s_leakage_bkg_pdf', 'landau+gauss', template, let_float=False)
+    #model_final.add_background_model('kstar0_pion_partial_bkg_pdf', model_kstar0_pion_partial_template.background_models['kstar0_pion_partial_bkg_pdf'])
+    #model_final.add_background_model('kstar0_kaon_partial_bkg_pdf', model_kstar0_kaon_partial_template.background_models['kstar0_kaon_partial_bkg_pdf'])
+    #model_final.add_background_model('kstar0_kaon_partial_bkg_pdf', 'gauss+gauss', template, let_float=False)
+    #model_final.add_background_model('kstar0_pion_partial_bkg_pdf', 'gauss+gauss', template, let_float=False)
+    
+    if toy_fit:
+        sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 100., 0., 5*dataset_data.numEntries())
+    #comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 40., 0., 1000.)
+    psi2s_leakage_bkg_coeff = ROOT.RooRealVar('psi2s_leakage_bkg_coeff'+fit_params.channel_label, 'Psi2s Leakage Background Coefficient', 14800., 10000., 100000.)
+    #kstar0_pion_partial_bkg_coeff = ROOT.RooRealVar('kstar0_pion_partial_bkg_coeff'+fit_params.channel_label, 'Kstar0 Pion Partial Background Coefficient', 132., 0., 10000.)
+    #kstar0_kaon_partial_bkg_coeff = ROOT.RooRealVar('kstar0_kaon_partial_bkg_coeff'+fit_params.channel_label, 'Kstar0 Kaon Partial Background Coefficient', 372., 0., 10000.)
+    
+    
+    
+    #model_comps = [model_final.comb_bkg_pdf, model_final.psi2s_leakage_bkg_pdf, model_final.kstar0_pion_partial_bkg_pdf, model_final.kstar0_kaon_partial_bkg_pdf]
+    #model_coeffs = [comb_bkg_coeff, psi2s_leakage_bkg_coeff, kstar0_pion_partial_bkg_coeff, kstar0_kaon_partial_bkg_coeff]
+    
+    #model_comps = [model_final.comb_bkg_pdf  ,model_final.kstar0_pion_partial_bkg_pdf, model_final.psi2s_leakage_bkg_pdf]
+    #model_coeffs = [comb_bkg_coeff, kstar0_pion_partial_bkg_coeff, psi2s_leakage_bkg_coeff]
+    
+    #model_comps = [model_final.kstar0_kaon_partial_bkg_pdf]
+    #model_coeffs = [kstar0_kaon_partial_bkg_coeff]
+    
+    model_comps = [model_final.psi2s_leakage_bkg_pdf]
+    model_coeffs = [psi2s_leakage_bkg_coeff]    
+    if toy_fit:
+        model_comps.append(model_final.sig_pdf)
+        model_coeffs.append(sig_coeff)
+        # model_comps.insert(0,model_final.sig_pdf)
+        # model_coeffs.insert(0,sig_coeff)
+    
+    model_final.fit_model = ROOT.RooAddPdf(
+        'pdf_sum_final',
+        'Sum of Signal and Background PDFs',
+        ROOT.RooArgList(*model_comps),
+        ROOT.RooArgList(*model_coeffs)
+    )
+    
+    # Add gaussian contraints to fit parameters
+    psi2s_leakage_bkg_coeff.setConstant(False)
+    #kstar0_pion_partial_bkg_coeff.setConstant(False)
+    #kstar0_kaon_partial_bkg_coeff.setConstant(False)
+    #kstar_ratio = ROOT.RooFormulaVar('kstar_ratio', 'Ratio of K* decay channels', '@0/@1', ROOT.RooArgList(kstar0_pion_partial_bkg_coeff, kstar0_kaon_partial_bkg_coeff))
+    
+#    gauss1_mean_kstar0_pion_partial_bkg_pdf.setConstant(False)
+#    gauss1_sigma_kstar0_pion_partial_bkg_pdf.setConstant(False)
+#    gauss2_mean_kstar0_pion_partial_bkg_pdf.setConstant(False)
+#    gauss2_sigma_kstar0_pion_partial_bkg_pdf.setConstant(False)
+#    gauss1_coeff_kstar0_pion_partial_bkg_pdf.setConstant(False)
+#    gauss2_coeff_kstar0_pion_partial_bkg_pdf.setConstant(False)
+#    landau_mean_psi2s_leakage_bkg_pdf.setConstant(False)
+#    landau_sigma_psi2s_leakage_bkg_pdf.setConstant(False)
+#    landau_coeff_psi2s_leakage_bkg_pdf.setConstant(False)
+#    gauss_mean_psi2s_leakage_bkg_pdf.setConstant(False)
+#    gauss_sigma_psi2s_leakage_bkg_pdf.setConstant(False)
+#    gauss_coeff_psi2s_leakage_bkg_pdf.setConstant(False)
+#    c0_comb_bkg_pdf.setConstant(False)
+#    c1_comb_bkg_pdf.setConstant(False)
+#    c2_comb_bkg_pdf.setConstant(False)
+#    c3_comb_bkg_pdf.setConstant(False)
+#    c4_comb_bkg_pdf.setConstant(False)
+#    
+    
+    if toy_fit:
+        model_final.signal_models['sig_pdf'].dcb_mean.setConstant(False)
+        model_final.signal_models['sig_pdf'].dcb_sigma.setConstant(False)
+    
+    # Add gaussian contraints to fit parameters
+    model_final.constraints.update({
+        #'gauss1_mean_kstar0_kaon_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss1_mean_kstar0_kaon_partial_bkg_pdf_constraint', 'gauss1_mean_kstar0_kaon_partial_bkg_pdf_constraint', model_final.background_models['kstar0_kaon_partial_bkg_pdf'].gauss1_mean, ROOT.RooFit.RooConst(template['gauss1_mean_kstar0_kaon_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'gauss1_sigma_kstar0_kaon_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss1_sigma_kstar0_kaon_partial_bkg_pdf_constraint', 'gauss1_sigma_kstar0_kaon_partial_bkg_pdf_constraint', model_final.background_models['kstar0_kaon_partial_bkg_pdf'].gauss1_sigma, ROOT.RooFit.RooConst(template['gauss1_sigma_kstar0_kaon_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'gauss2_mean_kstar0_kaon_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss2_mean_kstar0_kaon_partial_bkg_pdf_constraint', 'gauss2_mean_kstar0_kaon_partial_bkg_pdf_constraint', model_final.background_models['kstar0_kaon_partial_bkg_pdf'].gauss2_mean, ROOT.RooFit.RooConst(template['gauss2_mean_kstar0_kaon_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'gauss2_sigma_kstar0_kaon_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss2_sigma_kstar0_kaon_partial_bkg_pdf_constraint', 'gauss2_sigma_kstar0_kaon_partial_bkg_pdf_constraint', model_final.background_models['kstar0_kaon_partial_bkg_pdf'].gauss2_sigma, ROOT.RooFit.RooConst(template['gauss2_sigma_kstar0_kaon_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'gauss1_coeff_kstar0_kaon_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss1_coeff_kstar0_kaon_partial_bkg_pdf_constraint', 'gauss1_coeff_kstar0_kaon_partial_bkg_pdf_constraint', model_final.background_models['kstar0_kaon_partial_bkg_pdf'].gauss1_coeff, ROOT.RooFit.RooConst(template['gauss1_coeff_kstar0_kaon_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'gauss2_coeff_kstar0_kaon_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss2_coeff_kstar0_kaon_partial_bkg_pdf_constraint', 'gauss2_coeff_kstar0_kaon_partial_bkg_pdf_constraint', model_final.background_models['kstar0_kaon_partial_bkg_pdf'].gauss2_coeff, ROOT.RooFit.RooConst(template['gauss2_coeff_kstar0_kaon_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'c0_comb_bkg_pdf_constraint' : ROOT.RooGaussian('c0_comb_bkg_pdf_constraint', 'c0_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].c0, ROOT.RooFit.RooConst(template['c0_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'c1_comb_bkg_pdf_constraint' : ROOT.RooGaussian('c1_comb_bkg_pdf_constraint', 'c1_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].c1, ROOT.RooFit.RooConst(template['c1_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'c2_comb_bkg_pdf_constraint' : ROOT.RooGaussian('c2_comb_bkg_pdf_constraint', 'c2_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].c2, ROOT.RooFit.RooConst(template['c2_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'c3_comb_bkg_pdf_constraint' : ROOT.RooGaussian('c3_comb_bkg_pdf_constraint', 'c3_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].c3, ROOT.RooFit.RooConst(template['c3_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        #'c4_comb_bkg_pdf_constraint' : ROOT.RooGaussian('c4_comb_bkg_pdf_constraint', 'c4_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].c4, ROOT.RooFit.RooConst(template['c4_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.00001)),
+        
+        #'gauss1_mean_kstar0_pion_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss1_mean_kstar0_pion_partial_bkg_pdf_constraint', 'gauss1_mean_kstar0_pion_partial_bkg_pdf_constraint', model_final.background_models['kstar0_pion_partial_bkg_pdf'].gauss1_mean, ROOT.RooFit.RooConst(template['gauss1_mean_kstar0_pion_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'gauss1_sigma_kstar0_pion_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss1_sigma_kstar0_pion_partial_bkg_pdf_constraint', 'gauss1_sigma_kstar0_pion_partial_bkg_pdf_constraint', model_final.background_models['kstar0_pion_partial_bkg_pdf'].gauss1_sigma, ROOT.RooFit.RooConst(template['gauss1_sigma_kstar0_pion_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'gauss2_mean_kstar0_pion_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss2_mean_kstar0_pion_partial_bkg_pdf_constraint', 'gauss2_mean_kstar0_pion_partial_bkg_pdf_constraint', model_final.background_models['kstar0_pion_partial_bkg_pdf'].gauss2_mean, ROOT.RooFit.RooConst(template['gauss2_mean_kstar0_pion_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'gauss2_sigma_kstar0_pion_partial_bkg_pdf_constraint' : ROOT.RooGaussian('gauss2_sigma_kstar0_pion_partial_bkg_pdf_constraint', 'gauss2_sigma_kstar0_pion_partial_bkg_pdf_constraint', model_final.background_models['kstar0_pion_partial_bkg_pdf'].gauss2_sigma, ROOT.RooFit.RooConst(template['gauss2_sigma_kstar0_pion_partial_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'landau_mean_psi2s_leakage_bkg_pdf_constraint' : ROOT.RooGaussian('landau_mean_psi2s_leakage_bkg_pdf_constraint', 'landau_mean_psi2s_leakage_bkg_pdf_constraint', model_final.background_models['psi2s_leakage_bkg_pdf'].landau_mean, ROOT.RooFit.RooConst(template['landau_mean_psi2s_leakage_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'landau_sigma_psi2s_leakage_bkg_pdf_constraint' : ROOT.RooGaussian('landau_sigma_psi2s_leakage_bkg_pdf_constraint', 'landau_sigma_psi2s_leakage_bkg_pdf_constraint', model_final.background_models['psi2s_leakage_bkg_pdf'].landau_sigma, ROOT.RooFit.RooConst(template['landau_sigma_psi2s_leakage_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'gauss_mean_psi2s_leakage_bkg_pdf_constraint' : ROOT.RooGaussian('gauss_mean_psi2s_leakage_bkg_pdf_constraint', 'gauss_mean_psi2s_leakage_bkg_pdf_constraint', model_final.background_models['psi2s_leakage_bkg_pdf'].gauss_mean, ROOT.RooFit.RooConst(template['gauss_mean_psi2s_leakage_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        #'gauss_sigma_psi2s_leakage_bkg_pdf_constraint' : ROOT.RooGaussian('gauss_sigma_psi2s_leakage_bkg_pdf_constraint', 'gauss_sigma_psi2s_leakage_bkg_pdf_constraint', model_final.background_models['psi2s_leakage_bkg_pdf'].gauss_sigma, ROOT.RooFit.RooConst(template['gauss_sigma_psi2s_leakage_bkg_pdf']), ROOT.RooFit.RooConst(0.01)),
+        
+        #'kstar_ratio_constraint' : ROOT.RooGaussian('kstar_ratio_constraint', 'kstar_ratio_constraint', kstar_ratio, ROOT.RooFit.RooConst(kstar_ratio.getVal()), ROOT.RooFit.RooConst(0.0000001)),
+        # 'exp_slope_comb_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_comb_bkg_pdf_constraint', 'exp_slope_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(0.5)),
+        # 'exp_slope_jpsi_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_jpsi_bkg_pdf_constraint', 'exp_slope_jpsi_bkg_pdf_constraint', model_final.background_models['jpsi_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_jpsi_bkg_pdf']), ROOT.RooFit.RooConst(0.5)),
+    })
+    if toy_fit:
+        model_final.constraints.update({
+            'dcb_mean_constraint' : ROOT.RooGaussian('dcb_mean_constraint', 'dcb_mean_constraint', model_final.signal_models['sig_pdf'].dcb_mean, ROOT.RooFit.RooConst(template['dcb_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+            'dcb_sigma_constraint' : ROOT.RooGaussian('dcb_sigma_constraint', 'dcb_sigma_constraint', model_final.signal_models['sig_pdf'].dcb_sigma, ROOT.RooFit.RooConst(template['dcb_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+        })
+    print(model_final.constraints)
+    # Fit model to data
+    fit_range = 'full' if toy_fit else 'sb1,sb2'
+    fit_norm_range = 'full' if toy_fit else 'sb1,sb2'
+    model_final.fit(dataset_data, fit_range=fit_range, fit_norm_range=fit_norm_range, printlevel=printlevel)
+    params = model_final.fit_result.floatParsFinal()
+    
+    # Plot fit result
+    model_final.plot_fit(
+        b_mass_branch,
+        dataset_data,
+        os.path.join(output_params.output_dir,'fit_'+args.mode+'_final.pdf'),
+        fit_components=model_comps,
+        bins=30,
+    )
+    
+    #add normalization terms for Combine
+    #comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb_bkg_coeff.getVal(), 0, dataset_data.numEntries())
+    #psi2s_leakage_bkg_pdf_norm = ROOT.RooRealVar('psi2s_leakage_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of psi2s leakage background events', psi2s_leakage_bkg_coeff.getVal(), 0, dataset_data.numEntries())
+    #kstar0_pion_partial_pdf_norm = ROOT.RooRealVar('kstar0_pion_partial_pdf'+fit_params.channel_label+'_norm', 'Number of kstar0 pion partial background events', kstar0_pion_partial_bkg_coeff.getVal(), 0, dataset_data.numEntries())
+    #kstar0_kaon_partial_pdf_norm = ROOT.RooRealVar('kstar0_kaon_partial_pdf'+fit_params.channel_label+'_norm', 'Number of kstar0 kaon partial background events', kstar0_kaon_partial_bkg_coeff.getVal(), 0, dataset_data.numEntries())
+    
+    # Write final fit to RooWorkspace
+    #if write:
+    #    write_workspace(output_params, args, model_final, extra_objs=[comb_bkg_pdf_norm, psi2s_leakage_bkg_pdf_norm, kstar0_pion_partial_pdf_norm, kstar0_kaon_partial_pdf_norm])
+    
+    # Use function to grab yields
+    # if get_yields:
+    if True:
+        yields = {
+            'yield_sig' : sig_coeff.getValV() if toy_fit else 'N/A',
+            'yield_comb_bkg' : comb_bkg_coeff.getValV(),
+            'yield_psi2s_leakage_bkg' : psi2s_leakage_bkg_coeff.getValV(),
+            'yield_kstar0_pion_partial_bkg' : kstar0_pion_partial_bkg_coeff.getValV(),
+            'yield_kstar0_kaon_partial_bkg' : kstar0_kaon_partial_bkg_coeff.getValV(),
+        }
+        print(yields)
+        return yields
+    
+    
+               
         
     
 

@@ -1,23 +1,23 @@
 datasets:
-  data_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_data.root
-  samesign_data_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_same_sign_electrons.root
-  rare_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_rare_mass.root
-  high_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_rare_mass.root
-  jpsi_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_jpsi.root
-  psi2s_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_psi2s.root
+  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_data.root
+  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_same_sign_electrons.root
+  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_rare_mass.root
+  high_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_rare_mass.root
+  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_jpsi.root
+  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_psi2s.root
 
-  Buto_kstar_jpsi_pion_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_BuToKstarJPsi_pion.root
+  Buto_kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_BuToKstarJPsi_pion.root
 
-  B0_k0star_jpsi_kaon_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_BdToK0starJPsi_kaon.root
-  B0_k0star_jpsi_pion_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_BdToK0starJPsi_pion.root
+  B0_k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_BdToK0starJPsi_kaon.root
+  B0_k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_BdToK0starJPsi_pion.root
 
-  B0_psi2s_kplus_piminus_pionhypothesis_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_bdto_psi2s_kplus_piminus_pionhypothesis.root
-  B0_psi2s_kplus_piminus_kaonhypothesis_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_bdto_psi2s_kplus_piminus_kaonhypothesis.root
+  B0_psi2s_kplus_piminus_pionhypothesis_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_bdto_psi2s_kplus_piminus_pionhypothesis.root
+  B0_psi2s_kplus_piminus_kaonhypothesis_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_bdto_psi2s_kplus_piminus_kaonhypothesis.root
 
-  Buto_psi2s_kstarplus_kplus_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_buto_psi2s_kstarplus_kplus.root
-  Buto_psi2s_pi_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_buto_psi2s_pi.root  
-  B0_psi2s_kstar_kaon_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_PSI2S_B0_KSTAR_KAON.root
-  B0_psi2s_kstar_pion_file: /eos/user/j/jodedra/AnalysisWork_2024/CombineR3k/CMSSW_11_3_4/src/r3k-fitter/bdtoutput_inclusive_01_09_24/measurement_PSI2S_B0_KSTAR_PION.root
+  Buto_psi2s_kstarplus_kplus_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_buto_psi2s_kstarplus_kplus.root
+  Buto_psi2s_pi_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_buto_psi2s_pi.root  
+  B0_psi2s_kstar_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_PSI2S_B0_KSTAR_KAON.root
+  B0_psi2s_kstar_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/NoahDebugFiles/bdtoutput_inclusive_01_09_24/measurement_PSI2S_B0_KSTAR_PION.root
  
   tree_name: mytree
   b_mass_branch: Bmass
@@ -117,23 +117,11 @@ fit:
         dcb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
         dcb_nR_sig_pdf:           [3.48, 1., 10.]
 
-
         c0_comb_bkg_pdf : [0.1, -10000., 10000]
         c1_comb_bkg_pdf : [0.1, -10000., 10000]
         c2_comb_bkg_pdf : [0.1, -10000., 10000]
         c3_comb_bkg_pdf : [0.1, -10000., 10000]
         c4_comb_bkg_pdf : [0.1, -10000., 10000]
-
-
-
-
-
-
-
-
-
-
-
 
         cb_mean_sig_pdf:         [5.27, 5.2, 5.3]
         cb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
@@ -141,8 +129,10 @@ fit:
         cb_nL_sig_pdf:           [2.07, 1., 10.]
         cb_alphaR_sig_pdf:       [1.62, 0.5, 3.]
         cb_nR_sig_pdf:           [3.48, 1., 10.]
+
         exp_slope_comb_bkg_pdf:  [-1.46, -10., 0.]
         exp_slope_psi2s_bkg_pdf:  [-14.11, -50., 0.]
+
         kde_mirror_part_bkg_pdf_1: 'MirrorAsymLeftRight'
         kde_rho_part_bkg_pdf_1:    1.5
         kde_mirror_part_bkg_pdf_2: 'MirrorAsymLeftRight'
@@ -150,6 +140,7 @@ fit:
         kde_mirror_part_bkg_pdf_3: 'MirrorAsymLeftRight'
         kde_rho_part_bkg_pdf_3:    1.5
         exp_slope_other_bkg_pdf:  [-1.46, -10., 0.]
+
         landau_sigma_psi2s_leakage_bkg_pdf: [0.1, 0.01, 0.2]
         landau_mean_psi2s_leakage_bkg_pdf: [5.3, 5.3, 5.6]
         landau_coeff_psi2s_leakage_bkg_pdf: [0.1, 0.01, 10000.]
@@ -164,21 +155,19 @@ fit:
         gauss_mean_psi2s_pi_bkg_pdf: [5.0, 5.3, 6.0]
         gauss_coeff_psi2s_pi_bkg_pdf: [0.1, 0.01, 10000.]
 
-        gauss1_sigma_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 1000.]
-        gauss1_mean_kstar0_kaon_partial_bkg_pdf: [5.3, 5.2, 6.0]
+        gauss1_sigma_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 10.]
+        gauss1_mean_kstar0_kaon_partial_bkg_pdf: [5.3, 5.1, 5.4]
         gauss1_coeff_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 100000.]
-        gauss2_sigma_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 1000.]
-        gauss2_mean_kstar0_kaon_partial_bkg_pdf: [5.3, 5.2, 6.0]
+        gauss2_sigma_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 10.]
+        gauss2_mean_kstar0_kaon_partial_bkg_pdf: [5.3, 5.1, 5.4]
         gauss2_coeff_kstar0_kaon_partial_bkg_pdf: [0.1, 0.01, 100000.]
 
-        gauss1_sigma_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 10000.]
-        gauss1_mean_kstar0_pion_partial_bkg_pdf: [4.5, 4.5, 5.7]
+        gauss1_sigma_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 1.]
+        gauss1_mean_kstar0_pion_partial_bkg_pdf: [4.5, 4.5, 5.0]
         gauss1_coeff_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 10000.]
         gauss2_sigma_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 0.8]
-        gauss2_mean_kstar0_pion_partial_bkg_pdf: [4.5, 4.5, 5.7]
+        gauss2_mean_kstar0_pion_partial_bkg_pdf: [4.5, 4.5, 5.0]
         gauss2_coeff_kstar0_pion_partial_bkg_pdf: [0.1, 0.01, 10000.]
 
 
         
- 
-

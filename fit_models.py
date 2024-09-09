@@ -376,8 +376,13 @@ class FitModel:
             printlevel,
         ]
 
+
         if self.constraints:
-            fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
+            contraintset = ROOT.RooArgSet()
+            for c in self.constraints.values():
+                contraintset.add(c)
+
+            fit_args.append(ROOT.RooFit.ExternalConstraints(contraintset))
 
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
@@ -440,7 +445,7 @@ class FitModel:
                 ROOT.RooFit.LineStyle(ROOT.kDashed),
                 ROOT.RooFit.LineColor(next(get_color))
             )
-            # leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
+            leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
 
         chi2 = frame.chiSquare(
             plot_model.GetName(),
