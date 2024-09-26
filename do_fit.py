@@ -343,6 +343,74 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     printlevel = set_verbosity(args)
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
+    # Look at partial shape files
+    tmp_b_mass_branch, dataset_kstar_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_kaon_file)
+    _, dataset_kstar_pion   = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
+    _, dataset_k0star_kaon  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)
+    _, dataset_k0star_pion  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)
+    _, dataset_chic1_kaon   = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.chic1_jpsi_kaon_file)
+    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.jpsipi_jpsi_kaon_file, score_cut=0.)
+    dataset_kstar_comb = dataset_kstar_kaon.Clone('dataset_kstar_comb'+fit_params.channel_label)
+    dataset_kstar_comb.append(dataset_kstar_pion)
+    dataset_kstar_comb.append(dataset_k0star_kaon)
+    dataset_kstar_comb.append(dataset_k0star_pion)
+    dataset_kstar_comb.append(dataset_chic1_kaon)
+    dataset_kstar_comb.append(dataset_jpsipi_pion)
+
+    if args.verbose: 
+        print('nEvents for B+ -> J/ψ K*+ - Kee cand = {}'.format(dataset_kstar_kaon.sumEntries()))
+        print('nEvents for B+ -> J/ψ K*+ - πee cand = {}'.format(dataset_kstar_pion.sumEntries()))
+        print('nEvents for B0 -> J/ψ K*0 - Kee cand = {}'.format(dataset_k0star_kaon.sumEntries()))
+        print('nEvents for B0 -> J/ψ K*0 - πee cand = {}'.format(dataset_k0star_pion.sumEntries()))
+        print('nEvents for B+ -> χc1 K+  - Kee cand = {}'.format(dataset_chic1_kaon.sumEntries()))
+        print('nEvents for B+ -> J/ψ π+  - πee cand = {}'.format(dataset_jpsipi_pion.sumEntries()))
+
+    tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
+    leg = ROOT.TLegend(.6,.5,.85,.85)
+    tmp_frame = tmp_b_mass_branch.frame()
+    '''
+    8606
+    5928
+    33614
+    5689
+    4896
+    0
+    '''
+    dataset_kstar_kaon.plotOn(tmp_frame, ROOT.RooFit.Name('kstar_kaon'), ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kOrange), ROOT.RooFit.MarkerColor(ROOT.kOrange))
+    dataset_kstar_pion.plotOn(tmp_frame, ROOT.RooFit.Name('kstar_pion'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
+    dataset_k0star_kaon.plotOn(tmp_frame, ROOT.RooFit.Name('k0star_kaon'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
+    dataset_k0star_pion.plotOn(tmp_frame, ROOT.RooFit.Name('k0star_pion'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kGreen), ROOT.RooFit.MarkerColor(ROOT.kGreen))
+    dataset_chic1_kaon.plotOn(tmp_frame, ROOT.RooFit.Name('chic1_kaon'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kMagenta), ROOT.RooFit.MarkerColor(ROOT.kMagenta))
+    dataset_jpsipi_pion.plotOn(tmp_frame, ROOT.RooFit.Name('jpsipi_pion'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kCyan), ROOT.RooFit.MarkerColor(ROOT.kCyan))
+    dataset_kstar_comb.plotOn(tmp_frame,  ROOT.RooFit.Name('combination'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kBlack))
+
+    l1 = leg.AddEntry('combination','combination','lpe')
+    l1.SetLineColor(ROOT.kBlack)
+    l1.SetMarkerColor(ROOT.kBlack)
+    l2 = leg.AddEntry('kstar_kaon','kstar_kaon','lpe')
+    l2.SetLineColor(ROOT.kOrange)
+    l2.SetMarkerColor(ROOT.kOrange)
+    l3 = leg.AddEntry('kstar_pion','kstar_pion','lpe')
+    l3.SetLineColor(ROOT.kBlue)
+    l3.SetMarkerColor(ROOT.kBlue)
+    l4 = leg.AddEntry('k0star_kaon','k0star_kaon','lpe')
+    l4.SetLineColor(ROOT.kRed)
+    l4.SetMarkerColor(ROOT.kRed)
+    l5 = leg.AddEntry('k0star_pion','k0star_pion','lpe')
+    l5.SetLineColor(ROOT.kGreen)
+    l5.SetMarkerColor(ROOT.kGreen)
+    l6 = leg.AddEntry('chic1_kaon','chic1_kaon','lpe')
+    l6.SetLineColor(ROOT.kMagenta)
+    l6.SetMarkerColor(ROOT.kMagenta)
+    l7 = leg.AddEntry('jpsipi_pion','jpsipi_pion','lpe')
+    l7.SetLineColor(ROOT.kCyan)
+    l7.SetMarkerColor(ROOT.kCyan)
+    
+
+    tmp_frame.Draw()
+    leg.Draw()
+    tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_jpsi_dataset_kstar_combs.pdf'))
+    exit()
 
     # Fit signal template from MC sample
     if not args.cache:
@@ -381,7 +449,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             print('\nStarting Fit 2 - Combinatorial Background Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesign_data_file, score_cut=0.)
+        _, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True, set_file=dataset_params.samesign_data_file, score_cut=0.)
 
         # Build Roofit model for exponential background
         model_comb_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
@@ -405,46 +473,10 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     # Fit partial background shape to kstar MC
     if args.verbose:
         print('\nStarting Fit 3 - KStar Partial Template 1\n{}'.format(50*'~'))
+    
     # Import ROOT file dataset
-    b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
-    b_mass_branch, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)#, extra_weight=.1)
-    b_mass_branch, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)#, extra_weight=.1)
-    dataset_kstar_comb = dataset_kstar_pion.Clone('dataset_kstar_comb'+fit_params.channel_label)
-    dataset_kstar_comb.append(dataset_k0star_kaon)
-    dataset_kstar_comb.append(dataset_k0star_pion)
-
-    if args.verbose: 
-        print('nEvents for K*+ -> piee cand = {}'.format(dataset_kstar_pion.sumEntries()))
-        print('nEvents for K*0 -> piee cand = {}'.format(dataset_k0star_pion.sumEntries()))
-        print('nEvents for K*0 -> Kee cand = {}'.format(dataset_k0star_kaon.sumEntries()))
-
-    tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
-    tmp_frame = b_mass_branch.frame()
-    dataset_kstar_pion.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
-    dataset_k0star_kaon.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
-    dataset_k0star_pion.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kGreen), ROOT.RooFit.MarkerColor(ROOT.kGreen))
-    dataset_kstar_comb.plotOn(tmp_frame, ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.MarkerColor(ROOT.kBlack))
-    tmp_frame.Draw()
-    tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_jpsi_dataset_kstar_combs.pdf'))
-
-    '''
-    # Build Roofit model for exponential background
-    model_kstar_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar_comb, 'channel_label' : fit_params.channel_label})
-    model_kstar_template.add_background_model('part_bkg_pdf', 'kde', fit_params.fit_defaults, let_float=True)
-    model_kstar_template.fit_model = model_kstar_template.part_bkg_pdf
-
-    # Plot fit result
-    model_kstar_template.plot_fit(
-        b_mass_branch,
-        dataset_kstar_comb,
-        os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar_partial_template.pdf'),
-        bins=30,
-    )
-    '''
-
-    # Import ROOT file dataset
-    b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
-    b_mass_branch, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)#, extra_weight=.1)
+    _, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
+    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)#, extra_weight=.1)
     dataset_kstar_pion_comb = dataset_kstar_pion.Clone('dataset_kstar_pion_comb'+fit_params.channel_label)
     dataset_kstar_pion_comb.append(dataset_k0star_pion)
 
@@ -465,7 +497,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 3.5 - KStar Partial Template 2\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    b_mass_branch, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)#, extra_weight=.1)
+    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)#, extra_weight=.1)
 
     # Build Roofit model for exponential background
     model_kstar_kaon_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_k0star_kaon, 'channel_label' : fit_params.channel_label})
@@ -490,7 +522,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             template = yaml.safe_load(file)
 
     # Import ROOT file dataset
-    b_mass_branch, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
+    _, dataset_data = prepare_inputs(dataset_params, fit_params, isData=True)
 
     # Build final Roofit model
     model_final = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
@@ -562,6 +594,8 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             model_final.part_bkg_pdf_1,
             model_final.part_bkg_pdf_2,
         ],
+		fit_result=model_final.fit_result,
+		extra_text='N_{{J/#psi}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
     )
 
     # Add normalization terms for Combine
@@ -583,9 +617,13 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     # Use function to grab yields
     yields = {
         'yield_sig' : sig_coeff.getValV(),
+        'yield_sig_err' : sig_coeff.getError(),
         'yield_comb_bkg' : comb_bkg_coeff.getValV(),
+        'yield_comb_bkg_err' : comb_bkg_coeff.getError(),
         'yield_part_bkg_1' : part_bkg_1_coeff.getValV(),
+        'yield_part_bkg_1_err' : part_bkg_1_coeff.getError(),
         'yield_part_bkg_2' : part_bkg_2_coeff.getValV(),
+        'yield_part_bkg_2_err' : part_bkg_2_coeff.getError(),
     }
     pprint(yields)
 
@@ -847,9 +885,13 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     # Use function to grab yields
     yields = {
         'yield_sig' : sig_coeff.getValV(),
+        'yield_sig_err' : sig_coeff.getError(),
         'yield_comb_bkg' : comb_bkg_coeff.getValV(),
+        'yield_comb_bkg_err' : comb_bkg_coeff.getError(),
         'yield_part_bkg_1' : part_bkg_1_coeff.getValV(),
+        'yield_part_bkg_1_err' : part_bkg_1_coeff.getError(),
         'yield_part_bkg_2' : part_bkg_2_coeff.getValV(),
+        'yield_part_bkg_2_err' : part_bkg_2_coeff.getError(),
     }
     pprint(yields)
 

@@ -1,18 +1,21 @@
 datasets:
   data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_data_slimmed.root
-  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_same_sign_electrons.root
-  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_rare.root
-  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_jpsi.root
-  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_psi2s.root
-  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_kstar_jpsi_pion.root
-  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_jpsi_kaon.root
-  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_jpsi_pion.root
-  kstar_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_kstar_psi2s_pion.root
-  k0star_psi2s_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_psi2s_kaon.root
-  k0star_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_psi2s_pion.root
-  kstar_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_kstar_pion.root
-  k0star_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_kaon.root
-  k0star_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_k0star_pion.root
+  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_same_sign_electrons.root
+  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_rare.root
+  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_jpsi.root
+  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_psi2s.root
+  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_jpsi_pion.root
+  kstar_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_jpsi_kaon.root
+  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_jpsi_kaon.root
+  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_jpsi_pion.root
+  chic1_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_chic1_jpsi_kaon.root
+  jpsipi_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_jpsipi_jpsi_pion.root
+  kstar_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_psi2s_pion.root
+  k0star_psi2s_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_psi2s_kaon.root
+  k0star_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_psi2s_pion.root
+  kstar_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_pion.root
+  k0star_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_kaon.root
+  k0star_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_pion.root
   tree_name: mytree
   b_mass_branch: Bmass
   ll_mass_branch: Mll
