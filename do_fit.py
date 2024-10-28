@@ -313,6 +313,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         os.path.join(output_params.output_dir,'fit_'+args.mode+'_final.pdf'),
         fit_components=model_comps,
         bins=30,
+        extra_text='N_{{B #rightarrow eeK}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
     )
 
     # Add normalization terms for Combine
@@ -344,18 +345,19 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     set_mode(dataset_params, output_params, fit_params, args)
     makedirs(output_params.output_dir)
     # Look at partial shape files
-    tmp_b_mass_branch, dataset_kstar_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_kaon_file)
-    _, dataset_kstar_pion   = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
-    _, dataset_k0star_kaon  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)
-    _, dataset_k0star_pion  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)
-    _, dataset_chic1_kaon   = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.chic1_jpsi_kaon_file)
-    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.jpsipi_jpsi_kaon_file, score_cut=0.)
+    tmp_b_mass_branch, dataset_kstar_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_kstar_pion   = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_k0star_kaon  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_k0star_pion  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_chic1_kaon   = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.chic1_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.jpsipi_jpsi_kaon_file, score_cut=0.)#, weight_branch_name='trig_wgt_reweighted')
     dataset_kstar_comb = dataset_kstar_kaon.Clone('dataset_kstar_comb'+fit_params.channel_label)
     dataset_kstar_comb.append(dataset_kstar_pion)
     dataset_kstar_comb.append(dataset_k0star_kaon)
     dataset_kstar_comb.append(dataset_k0star_pion)
     dataset_kstar_comb.append(dataset_chic1_kaon)
-    dataset_kstar_comb.append(dataset_jpsipi_pion)
+    #dataset_kstar_comb.append(dataset_jpsipi_pion)
+    
 
     if args.verbose: 
         print('nEvents for B+ -> J/ψ K*+ - Kee cand = {}'.format(dataset_kstar_kaon.sumEntries()))
@@ -368,14 +370,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     tmp_c = ROOT.TCanvas('tmp_c', ' ', 800, 600)
     leg = ROOT.TLegend(.6,.5,.85,.85)
     tmp_frame = tmp_b_mass_branch.frame()
-    '''
-    8606
-    5928
-    33614
-    5689
-    4896
-    0
-    '''
+    
     dataset_kstar_kaon.plotOn(tmp_frame, ROOT.RooFit.Name('kstar_kaon'), ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kOrange), ROOT.RooFit.MarkerColor(ROOT.kOrange))
     dataset_kstar_pion.plotOn(tmp_frame, ROOT.RooFit.Name('kstar_pion'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kBlue), ROOT.RooFit.MarkerColor(ROOT.kBlue))
     dataset_k0star_kaon.plotOn(tmp_frame, ROOT.RooFit.Name('k0star_kaon'),ROOT.RooFit.Binning(30), ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.MarkerColor(ROOT.kRed))
@@ -405,12 +400,10 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     l7 = leg.AddEntry('jpsipi_pion','jpsipi_pion','lpe')
     l7.SetLineColor(ROOT.kCyan)
     l7.SetMarkerColor(ROOT.kCyan)
-    
 
     tmp_frame.Draw()
     leg.Draw()
     tmp_c.SaveAs(os.path.join(output_params.output_dir,'tmp_jpsi_dataset_kstar_combs.pdf'))
-    exit()
 
     # Fit signal template from MC sample
     if not args.cache:
@@ -472,47 +465,18 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Fit partial background shape to kstar MC
     if args.verbose:
-        print('\nStarting Fit 3 - KStar Partial Template 1\n{}'.format(50*'~'))
+        print('\nStarting Fit 3 - Partial Template \n{}'.format(50*'~'))
     
     # Import ROOT file dataset
-    _, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.kstar_jpsi_pion_file)
-    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_pion_file)#, extra_weight=.1)
-    dataset_kstar_pion_comb = dataset_kstar_pion.Clone('dataset_kstar_pion_comb'+fit_params.channel_label)
-    dataset_kstar_pion_comb.append(dataset_k0star_pion)
-
-    # Build Roofit model for exponential background
-    model_kstar_pion_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar_pion_comb, 'channel_label' : fit_params.channel_label})
-    model_kstar_pion_template.add_background_model('part_bkg_pdf_1', 'kde', fit_params.fit_defaults, let_float=True)
-    model_kstar_pion_template.fit_model = model_kstar_pion_template.part_bkg_pdf_1
-
-    # Plot fit result
-    model_kstar_pion_template.plot_fit(
-        b_mass_branch,
-        dataset_kstar_pion_comb,
-        os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar_partial_template_1.pdf'),
-        bins=30,
-    )
-
-    if args.verbose:
-        print('\nStarting Fit 3.5 - KStar Partial Template 2\n{}'.format(50*'~'))
-
-    # Import ROOT file dataset
-    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, set_file=dataset_params.k0star_jpsi_kaon_file)#, extra_weight=.1)
-
-    # Build Roofit model for exponential background
-    model_kstar_kaon_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_k0star_kaon, 'channel_label' : fit_params.channel_label})
-    model_kstar_kaon_template.add_background_model('part_bkg_pdf_2', 'kde', fit_params.fit_defaults, let_float=True)
-    model_kstar_kaon_template.fit_model = model_kstar_kaon_template.part_bkg_pdf_2
-
-    # Plot fit result
-    model_kstar_kaon_template.plot_fit(
-        b_mass_branch,
-        dataset_k0star_kaon,
-        os.path.join(output_params.output_dir,'fit_'+args.mode+'_kstar_partial_template_2.pdf'),
-        bins=30,
-    )
-
-    # Add partial background shape to simplified fit
+    model_part_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_kstar_comb, 'channel_label' : fit_params.channel_label})
+    model_part_template.add_background_model('part_bkg_pdf', 'kde', fit_params.fit_defaults, let_float=True)
+    model_part_template.fit_model = model_part_template.part_bkg_pdf
+    
+    model_jpsipi_pion_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsipi_pion, 'channel_label' : fit_params.channel_label})
+    model_jpsipi_pion_template.add_background_model('part_bkg_pdf_jpsipi_pion', 'kde', fit_params.fit_defaults, let_float=True)
+    model_jpsipi_pion_template.fit_model = model_jpsipi_pion_template.part_bkg_pdf_jpsipi_pion
+    
+    # Final Composite Fit
     if args.verbose:
         print('\nStarting Fit 4 - Final Model\n{}'.format(50*'~'))
 
@@ -528,14 +492,13 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     model_final = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
     model_final.add_signal_model('sig_pdf', 'dcb+dcb', template, let_float=False)
     model_final.add_background_model('comb_bkg_pdf', 'exp', template, let_float=False)
-    # model_final.add_background_model('part_bkg_pdf', 'generic', fit_params.fit_defaults, let_float=True)
-    model_final.add_background_model('part_bkg_pdf_1', model_kstar_pion_template.background_models['part_bkg_pdf_1'])
-    model_final.add_background_model('part_bkg_pdf_2', model_kstar_kaon_template.background_models['part_bkg_pdf_2'])
+    model_final.add_background_model('part_bkg_pdf', model_part_template.background_models['part_bkg_pdf'])
+    model_final.add_background_model('part_bkg_pdf_jpsipi_pion',model_jpsipi_pion_template.background_models['part_bkg_pdf_jpsipi_pion'])
 
-    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 60000, 0, dataset_data.numEntries())
+    sig_coeff = ROOT.RooRealVar('sig_coeff'+fit_params.channel_label, 'Signal PDF Coefficient', 60000, 0, 2*dataset_data.numEntries())
     comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 2000, 0, dataset_data.numEntries())
-    part_bkg_1_coeff = ROOT.RooRealVar('part_bkg_1_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 1 Coefficient', 1400, 0, dataset_data.numEntries())
-    part_bkg_2_coeff = ROOT.RooRealVar('part_bkg_2_coeff'+fit_params.channel_label, 'Partially Reconstructed Background 2 Coefficient', 8000, 0, dataset_data.numEntries())
+    part_bkg_coeff  = ROOT.RooRealVar('part_bkg_coeff'+fit_params.channel_label, 'Part. Bkg. PDF Coeff.', 3000, 0, dataset_data.numEntries())
+    part_bkg_jpsipi_pion_coeff = ROOT.RooRealVar('part_bkg_jpsipi_pion_coeff'+fit_params.channel_label, 'Part. Bkg. PDF Coeff.', 100, 0, dataset_data.numEntries())
 
     model_final.fit_model = ROOT.RooAddPdf(
         'pdf_sum_final',
@@ -543,21 +506,19 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         ROOT.RooArgList(
             model_final.sig_pdf,
             model_final.comb_bkg_pdf,
-            model_final.part_bkg_pdf_1,
-            model_final.part_bkg_pdf_2,
+            model_final.part_bkg_pdf,
+            model_final.part_bkg_pdf_jpsipi_pion,
         ),
         ROOT.RooArgList(
             sig_coeff,
             comb_bkg_coeff,
-            part_bkg_1_coeff,
-            part_bkg_2_coeff,
+            part_bkg_coeff,
+            part_bkg_jpsipi_pion_coeff,
         )
     )
 
     # Add gaussian contraints to fit parameters
-    part_bkg_1_coeff.setConstant(False)
-    part_bkg_2_coeff.setConstant(False)
-    kstar_ratio = ROOT.RooFormulaVar('kstar_ratio', 'Ratio of K* decay channels', '@0/@1', ROOT.RooArgList(part_bkg_1_coeff, part_bkg_2_coeff))
+    sig_coeff.setConstant(False)
     model_final.background_models['comb_bkg_pdf'].exp_slope.setConstant(False)
     model_final.signal_models['sig_pdf'].dcb1_mean.setConstant(False)
     model_final.signal_models['sig_pdf'].dcb2_mean.setConstant(False)
@@ -567,7 +528,6 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     model_final.signal_models['sig_pdf'].dcb2_coeff.setConstant(False)
 
     model_final.add_constraints({
-        'kstar_ratio_constraint' : ROOT.RooGaussian('kstar_ratio_constraint', 'kstar_ratio_constraint', kstar_ratio, ROOT.RooFit.RooConst(kstar_ratio.getVal()), ROOT.RooFit.RooConst(.01)),
         'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(.5)),
         'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
         'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
@@ -588,20 +548,21 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         os.path.join(output_params.output_dir,'fit_'+args.mode+'_final.pdf'),
         fit_components = [
             model_final.sig_pdf,
-            model_final.signal_models['sig_pdf'].dcb1_pdf,
-            model_final.signal_models['sig_pdf'].dcb2_pdf,
+            # model_final.signal_models['sig_pdf'].dcb1_pdf,
+            # model_final.signal_models['sig_pdf'].dcb2_pdf,
             model_final.comb_bkg_pdf,
-            model_final.part_bkg_pdf_1,
-            model_final.part_bkg_pdf_2,
+            model_final.part_bkg_pdf,
+            model_final.part_bkg_pdf_jpsipi_pion,
         ],
-		fit_result=model_final.fit_result,
-		extra_text='N_{{J/#psi}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
+        fit_result=model_final.fit_result,
+        legend=True,
+        extra_text='N_{{J/#psi}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
     )
 
     # Add normalization terms for Combine
     comb_bkg_pdf_norm = ROOT.RooRealVar('comb_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of combinatorial background events', comb_bkg_coeff.getVal(), 0, dataset_data.numEntries())
-    part_bkg_pdf_1_norm = ROOT.RooRealVar('part_bkg_pdf_1'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_1_coeff.getVal(), 0, dataset_data.numEntries())
-    part_bkg_pdf_2_norm = ROOT.RooRealVar('part_bkg_pdf_2'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_2_coeff.getVal(), 0, dataset_data.numEntries())
+    part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_coeff.getVal(), 0, dataset_data.numEntries())
+    part_bkg_pdf_jpsipi_pion_norm = ROOT.RooRealVar('part_bkg_pdf_jpsipi_pion'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_jpsipi_pion_coeff.getVal(), 0, dataset_data.numEntries())
 
     # Renormalize signal pdf
     _dcb1_coeff = model_final.signal_models['sig_pdf'].dcb1_coeff.getVal()
@@ -616,14 +577,14 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Use function to grab yields
     yields = {
-        'yield_sig' : sig_coeff.getValV(),
-        'yield_sig_err' : sig_coeff.getError(),
-        'yield_comb_bkg' : comb_bkg_coeff.getValV(),
-        'yield_comb_bkg_err' : comb_bkg_coeff.getError(),
-        'yield_part_bkg_1' : part_bkg_1_coeff.getValV(),
-        'yield_part_bkg_1_err' : part_bkg_1_coeff.getError(),
-        'yield_part_bkg_2' : part_bkg_2_coeff.getValV(),
-        'yield_part_bkg_2_err' : part_bkg_2_coeff.getError(),
+        'yield_sig' : round(sig_coeff.getValV(),2),
+        'yield_sig_err' : round(sig_coeff.getError(),2),
+        'yield_comb_bkg' : round(comb_bkg_coeff.getValV(),2),
+        'yield_comb_bkg_err' : round(comb_bkg_coeff.getError(),2),
+        'yield_part_bkg' : round(part_bkg_coeff.getValV(),2),
+        'yield_part_bkg_err' : round(part_bkg_coeff.getError(),2),
+        'yield_part_bkg_jpsipi_pion' : round(part_bkg_jpsipi_pion_coeff.getValV(),2),
+        'yield_part_bkg_jpsipi_pion_err' : round(part_bkg_jpsipi_pion_coeff.getError(),2),
     }
     pprint(yields)
 
@@ -807,7 +768,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
 
     model_final.fit_model = ROOT.RooAddPdf(
         'pdf_sum_final',
-        'Sum of Signal and Background PDFs',
+        'Sum of PDFs',
         ROOT.RooArgList(
             model_final.sig_pdf,
             model_final.comb_bkg_pdf,
@@ -862,8 +823,8 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             model_final.part_bkg_pdf_1,
             model_final.part_bkg_pdf_2,
         ],
-		fit_result=model_final.fit_result,
-		extra_text='N_{{#psi(2s)}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
+        fit_result=model_final.fit_result,
+        extra_text='N_{{#psi(2s)}} = {} #pm {}'.format(round(sig_coeff.getValV()), round(sig_coeff.getError(),1)),
     )
 
     # Add normalization terms for Combine

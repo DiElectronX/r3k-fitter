@@ -1,15 +1,15 @@
 datasets:
-  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_19_24/measurement_data_slimmed.root
+  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_data.root
   samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_same_sign_electrons.root
   rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_rare.root
   jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_jpsi.root
   psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_psi2s.root
-  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_jpsi_pion.root
-  kstar_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_jpsi_kaon.root
-  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_jpsi_kaon.root
-  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_jpsi_pion.root
-  chic1_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_chic1_jpsi_kaon.root
-  jpsipi_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_jpsipi_jpsi_pion.root
+  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_jpsi_pion_downsampled.root
+  kstar_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_jpsi_kaon_downsampled.root
+  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_jpsi_kaon_downsampled.root
+  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_jpsi_pion_downsampled.root
+  chic1_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_chic1_jpsi_kaon_downsampled.root
+  jpsipi_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_jpsipi_jpsi_pion_downsampled.root
   kstar_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_kstar_psi2s_pion.root
   k0star_psi2s_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_psi2s_kaon.root
   k0star_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/nzipper/fit_input_files/6_26_24/measurement_k0star_psi2s_pion.root
@@ -50,12 +50,20 @@ fit:
         exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
         erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
         erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
-        kde_mirror_sig_pdf: 'NoMirror'
-        kde_rho_sig_pdf:    2
-        kde_mirror_part_bkg_pdf_1: 'MirrorLeft'
-        kde_rho_part_bkg_pdf_1:    2
-        kde_mirror_part_bkg_pdf_2: 'MirrorLeft'
-        kde_rho_part_bkg_pdf_2:    2
+        kde_mirror_part_bkg_pdf: 'MirrorLeft'
+        kde_rho_part_bkg_pdf:    2
+        kde_mirror_part_bkg_pdf_kstar_kaon: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_kstar_kaon:    2
+        kde_mirror_part_bkg_pdf_kstar_pion: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_kstar_pion:    2
+        kde_mirror_part_bkg_pdf_k0star_kaon: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_k0star_kaon:    2
+        kde_mirror_part_bkg_pdf_k0star_pion: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_k0star_pion:    2
+        kde_mirror_part_bkg_pdf_chic1_kaon: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_chic1_kaon:    2
+        kde_mirror_part_bkg_pdf_jpsipi_pion: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_jpsipi_pion:    2
     psi2s:
       ll_mass_range: [3.55, 3.8]
       defaults:

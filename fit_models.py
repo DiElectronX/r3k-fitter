@@ -294,7 +294,12 @@ class FitModel:
         ]
 
         if self.constraints:
-            fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
+            constraintset = ROOT.RooArgSet()
+            for c in self.constraints.values():
+                constraintset.add(c)
+
+            fit_args.append(ROOT.RooFit.ExternalConstraints(constraintset))
+            # fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
 
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
@@ -357,7 +362,7 @@ class FitModel:
                 ROOT.RooFit.LineStyle(ROOT.kDashed),
                 ROOT.RooFit.LineColor(next(get_color))
             )
-            # leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
+            leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
 
         chi2 = frame.chiSquare(
             plot_model.GetName(),
@@ -392,12 +397,12 @@ class FitModel:
         chi2_text.SetTextSize(0.07)
         chi2_text.SetNDC(ROOT.kTRUE)
         chi2_text.Draw()
-
+        '''
         pvalue_text = ROOT.TLatex(0.65, 0.7, 'p = {}'.format(pvalue // 0.0001 / 10000))
         pvalue_text.SetTextSize(0.07)
         pvalue_text.SetNDC(ROOT.kTRUE)
         pvalue_text.Draw()
-
+        '''
         if extra_text:
             text = ROOT.TLatex(0.65, 0.6, extra_text)
             text.SetTextSize(0.07)

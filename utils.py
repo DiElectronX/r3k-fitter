@@ -67,7 +67,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False, j
     return template
 
 
-def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, weight_norm=None, weight_sf=None):
+def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, weight_branch_name=None, weight_norm=None, weight_sf=None):
     # Read data from config file or manually set input
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
@@ -79,7 +79,7 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
     b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'B Candidate Mass [GeV]', *fit_params.full_mass_range)
     bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Di-Lepton Mass [GeV]', -100., 100.)
-    
+
     # Take region cuts from cfg file
     cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
         dataset_params.score_branch,
@@ -106,10 +106,13 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
         tmp_dataset = ROOT.RooDataHist('tmp_dataset_data'+fit_params.channel_label, 'Dataset', tree, variables, cutvar) \
             if binned else ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', tree, variables, cutvar)
+        
+        dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
     else:
         rdf = ROOT.RDataFrame(tree)
-        weight_sum = rdf.Filter(cutstring).Sum(dataset_params.mc_weight_branch).GetValue()
-        weight_branch = ROOT.RooRealVar(dataset_params.mc_weight_branch, 'Weight', -100., 100.)
+        weight_branch_name = dataset_params.mc_weight_branch if weight_branch_name is None else weight_branch_name
+        weight_sum = rdf.Filter(cutstring).Sum(weight_branch_name).GetValue()
+        weight_branch = ROOT.RooRealVar(weight_branch_name, 'Weight', -100., 100.)
         variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
 
         tmp_dataset = ROOT.RooDataHist('tmp_dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, cutvar, weight_branch.GetName()) \
