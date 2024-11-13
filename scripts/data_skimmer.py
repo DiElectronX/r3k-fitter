@@ -1,6 +1,7 @@
 import ROOT
 import sys
 from os import path
+ROOT.ROOT.EnableImplicitMT(10)
 
 def main(bdt_cut=3, bmass_range_cut=(4.7, 5.7)):
     if len(sys.argv) != 2:
@@ -26,7 +27,7 @@ def main(bdt_cut=3, bmass_range_cut=(4.7, 5.7)):
 if __name__ == "__main__":
     ROOT.EnableImplicitMT()
 
-    bdt_cut = 3.
+    bdt_cut = 2.
     bmass_range_cut = (4.7, 5.7)
 
     main(bdt_cut, bmass_range_cut)
