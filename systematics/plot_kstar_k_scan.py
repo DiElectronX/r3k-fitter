@@ -40,50 +40,107 @@ def jpsi_kstar_k_scan_plotter(data, path, show=False):
     if metadata["mass_window"]:
         leg_title = f'${metadata["mass_window"][0]} < m_{{B}} < {metadata["mass_window"][1]}$ GeV' 
     else:
-        leg_title = '$4.7 < m_{B} < 5.7$ GeV' 
+        leg_title = '$4.75 < m_{B} < 5.7$ GeV' 
     ax.legend([pdata,(pmc, pmc_err)], ['Data', 'MC $\pm 1 \sigma$'], title=leg_title, fontsize=16, title_fontsize=16)
 
     if show:
         fig.show()
 
-    fig.savefig(path, bbox_inches='tight')
+    outpath = Path(path)
+    fig.savefig(outpath.with_suffix('.pdf'), bbox_inches='tight')
+    fig.savefig(outpath.with_suffix('.png'), bbox_inches='tight')
+    plt.close(fig)
 
 
-def jpsi_comp_scan_plotter(data, path, show=False):
+def jpsi_resonant_scan_plotter(data, path, show=False):
     metadata = data['metadata']
     score = data['score']
-    _n_jpsi_sig = unumpy.uarray(data['n_jpsi_sig'],data['n_jpsi_sig_err'])
-    _n_jpsi_comb = unumpy.uarray(data['n_jpsi_comb'],data['n_jpsi_comb_err'])
-    _n_jpsi_kstar = unumpy.uarray(data['n_jpsi_kstar'],data['n_jpsi_kstar_err'])
-    _n_jpsi_sig_mc = unumpy.uarray(data['n_mc_jpsi_sig'],1/np.sqrt(data['n_mc_jpsi_sig']))
-    _n_jpsi_kstar_mc = unumpy.uarray(data['n_mc_jpsi_kstar'],1/np.sqrt(data['n_mc_jpsi_kstar']))
-
-    _n_jpsi_sig_norm = _n_jpsi_sig / _n_jpsi_sig.max()
-    _n_jpsi_comb_norm = _n_jpsi_comb / _n_jpsi_comb.max()
-    _n_jpsi_kstar_norm = _n_jpsi_kstar / _n_jpsi_kstar.max()
-    _n_jpsi_sig_mc_norm = _n_jpsi_sig_mc / _n_jpsi_sig_mc.max()
-    _n_jpsi_kstar_mc_norm = _n_jpsi_kstar_mc / _n_jpsi_kstar_mc.max()
+    
+    _n_jpsi_data_sig = unumpy.uarray(data['n_jpsi_data_sig'], data['n_jpsi_data_sig_err']) / data['n_jpsi_data_sig'][0]
+    _n_jpsi_mc_sig = unumpy.uarray(data['n_jpsi_mc_sig'], data['n_jpsi_mc_sig_err']) / data['n_jpsi_mc_sig'][0]
 
     fig, ax = plt.subplots(figsize=(8,8))
-    psig = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_sig_norm), yerr=unumpy.std_devs(_n_jpsi_sig_norm), ls='none', marker='.', color='blue')
-    pcomb = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_comb_norm), yerr=unumpy.std_devs(_n_jpsi_comb_norm), ls='none', marker='.', color='orange')
-    pkstar = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_kstar_norm), yerr=unumpy.std_devs(_n_jpsi_kstar_norm), ls='none', marker='.', color='green')
-    psig_mc = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_sig_mc_norm), yerr=unumpy.std_devs(_n_jpsi_sig_mc_norm), ls='--', marker='', color='blue')
-    pkstar_mc = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_kstar_mc_norm), yerr=unumpy.std_devs(_n_jpsi_kstar_mc_norm), ls='--', marker='', color='green')
+
+    pdata = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_data_sig), yerr=unumpy.std_devs(_n_jpsi_data_sig), ls='none', marker='.', color='blue')
+    pmc = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_mc_sig), yerr=unumpy.std_devs(_n_jpsi_mc_sig), ls='--', marker='', color='orange')
+    pmc_err = ax.fill_between(score, unumpy.nominal_values(_n_jpsi_mc_sig)-unumpy.std_devs(_n_jpsi_mc_sig), unumpy.nominal_values(_n_jpsi_mc_sig)+unumpy.std_devs(_n_jpsi_mc_sig), alpha=0.5, color='orange', edgecolor=None) 
     ax.set_xlabel('BDT Score',loc='right', fontsize=18)
-    ax.set_ylabel(r'$N_{Events}$ [A.U.]',loc='top',fontsize=18)
+    ax.set_ylabel(r'$N_{B \rightarrow J/\psi (e^{+}e^{-}) K^{+}}$ [A.U.]',loc='top',fontsize=18)
     ax.tick_params(axis='both', labelsize=14)
 
     if metadata["mass_window"]:
         leg_title = f'${metadata["mass_window"][0]} < m_{{B}} < {metadata["mass_window"][1]}$ GeV' 
     else:
-        leg_title = '$4.7 < m_{B} < 5.7$ GeV' 
-    ax.legend(['Data',psig,pcomb,pkstar,'MC',psig_mc,pkstar_mc], ['',r'$N_{Signal}$', '$N_{Comb. Bkg.}$', '$N_{Part. Reco. Bkg.}$','',r'$N_{B^{+} \rightarrow J/\psi K^{+}}$', r'$N_{B^{0} \rightarrow J/\psi K^{*0}}$'], title=leg_title, fontsize=16, title_fontsize=16,handler_map={str: LegendTitle({'fontsize': 16})})
+        leg_title = '$4.75 < m_{B} < 5.7$ GeV' 
+    ax.legend([pdata,(pmc, pmc_err)], ['Data', 'MC $\pm 1 \sigma$'], title=leg_title, fontsize=16, title_fontsize=16)
 
     if show:
         fig.show()
 
-    fig.savefig(path, bbox_inches='tight')
+    outpath = Path(path)
+    fig.savefig(outpath.with_suffix('.pdf'), bbox_inches='tight')
+    fig.savefig(outpath.with_suffix('.png'), bbox_inches='tight')
+    plt.close(fig)
+
+
+def jpsi_comp_scan_plotter(data, path, show=False, norm=True):
+    metadata = data['metadata']
+    score = data['score']
+    _n_jpsi_data_sig = unumpy.uarray(data['n_jpsi_data_sig'],data['n_jpsi_data_sig_err'])
+    _n_jpsi_data_comb = unumpy.uarray(data['n_jpsi_data_comb'],data['n_jpsi_data_comb_err'])
+    _n_jpsi_data_kstar = unumpy.uarray(data['n_jpsi_data_kstar'],data['n_jpsi_data_kstar_err'])
+    _n_jpsi_mc_sig = unumpy.uarray(data['n_jpsi_mc_sig'],1/np.sqrt(data['n_jpsi_mc_sig']))
+    _n_jpsi_mc_kstar = unumpy.uarray(data['n_jpsi_mc_kstar'],1/np.sqrt(data['n_jpsi_mc_kstar']))
+
+    if norm:
+        _n_jpsi_data_sig = _n_jpsi_data_sig / _n_jpsi_data_sig.max()
+        _n_jpsi_data_comb = _n_jpsi_data_comb / _n_jpsi_data_comb.max()
+        _n_jpsi_data_kstar = _n_jpsi_data_kstar / _n_jpsi_data_kstar.max()
+        _n_jpsi_mc_sig = _n_jpsi_mc_sig / _n_jpsi_mc_sig.max()
+        _n_jpsi_mc_kstar = _n_jpsi_mc_kstar / _n_jpsi_mc_kstar.max()
+
+    fig, ax = plt.subplots(figsize=(8,8))
+    psig = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_data_sig), yerr=unumpy.std_devs(_n_jpsi_data_sig), ls='none', marker='.', color='blue')
+    pcomb = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_data_comb), yerr=unumpy.std_devs(_n_jpsi_data_comb), ls='none', marker='.', color='orange')
+    pkstar = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_data_kstar), yerr=unumpy.std_devs(_n_jpsi_data_kstar), ls='none', marker='.', color='green')
+    psig_mc = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_mc_sig), yerr=unumpy.std_devs(_n_jpsi_mc_sig), ls='--', marker='', color='blue')
+    pkstar_mc = ax.errorbar(score, unumpy.nominal_values(_n_jpsi_mc_kstar), yerr=unumpy.std_devs(_n_jpsi_mc_kstar), ls='--', marker='', color='green')
+    ax.set_xlabel('BDT Score',loc='right', fontsize=18)
+    ax.set_ylabel(r'$N_{Events}$ [A.U.]' if norm else r'$N_{Events}$',loc='top',fontsize=18)
+    ax.tick_params(axis='both', labelsize=14)
+
+    if metadata["mass_window"]:
+        leg_title = f'${metadata["mass_window"][0]} < m_{{B}} < {metadata["mass_window"][1]}$ GeV' 
+    else:
+        leg_title = '$4.75 < m_{B} < 5.7$ GeV' 
+    ax.legend(
+        [
+            'Data',
+            psig,
+            pcomb,
+            pkstar,
+            'MC',
+            psig_mc,
+            pkstar_mc
+        ], [
+            '',
+            r'$N_{Signal}$', 
+            '$N_{Comb. Bkg.}$', 
+            '$N_{K^{*} \ Bkg.}$',
+            '',
+            r'$N_{B^{+} \rightarrow J/\psi K^{+}}$', 
+            r'$N_{B \rightarrow J/\psi K^{*}}$',
+        ], 
+        title=leg_title, fontsize=16, title_fontsize=16,handler_map={str: LegendTitle({'fontsize': 16})}
+    )
+
+    if show:
+        fig.show()
+
+    outpath = Path(path)
+    fig.savefig(outpath.with_suffix('.pdf'), bbox_inches='tight')
+    fig.savefig(outpath.with_suffix('.png'), bbox_inches='tight')
+    plt.close(fig)
 
 
 def psi2s_kstar_k_scan_plotter(data, path, show=False):
@@ -105,50 +162,76 @@ def psi2s_kstar_k_scan_plotter(data, path, show=False):
     if metadata["mass_window"]:
         leg_title = f'${metadata["mass_window"][0]} < m_{{B}} < {metadata["mass_window"][1]}$ GeV' 
     else:
-        leg_title = '$4.7 < m_{B} < 5.7$ GeV' 
+        leg_title = '$4.75 < m_{B} < 5.7$ GeV' 
     ax.legend([pdata,(pmc, pmc_err)], ['Data', 'MC $\pm 1 \sigma$'], title=leg_title, fontsize=16, title_fontsize=16)
 
     if show:
         fig.show()
 
-    fig.savefig(path, bbox_inches='tight')
+    outpath = Path(path)
+    fig.savefig(outpath.with_suffix('.pdf'), bbox_inches='tight')
+    fig.savefig(outpath.with_suffix('.png'), bbox_inches='tight')
+    plt.close(fig)
+
 
 def psi2s_comp_scan_plotter(data, path, show=False, norm=True):
     metadata = data['metadata']
     score = data['score']
-    _n_psi2s_sig = unumpy.uarray(data['n_psi2s_sig'],data['n_psi2s_sig_err'])
-    _n_psi2s_comb = unumpy.uarray(data['n_psi2s_comb'],data['n_psi2s_comb_err'])
-    _n_psi2s_kstar = unumpy.uarray(data['n_psi2s_kstar'],data['n_psi2s_kstar_err'])
-    _n_psi2s_sig_mc = unumpy.uarray(data['n_mc_psi2s_sig'],np.divide(1, np.sqrt(data['n_mc_psi2s_sig']), out=np.zeros_like(data['n_mc_psi2s_sig']), dtype=float, where=data['n_mc_psi2s_sig']!=0))
-    _n_psi2s_kstar_mc = unumpy.uarray(data['n_mc_psi2s_kstar'],np.divide(1, np.sqrt(data['n_mc_psi2s_kstar']), out=np.zeros_like(data['n_mc_psi2s_kstar']), dtype=float, where=data['n_mc_psi2s_kstar']!=0))
+    _n_psi2s_data_sig = unumpy.uarray(data['n_psi2s_data_sig'],data['n_psi2s_data_sig_err'])
+    _n_psi2s_data_comb = unumpy.uarray(data['n_psi2s_data_comb'],data['n_psi2s_data_comb_err'])
+    _n_psi2s_data_kstar = unumpy.uarray(data['n_psi2s_data_kstar'],data['n_psi2s_data_kstar_err'])
+    _n_psi2s_mc_sig = unumpy.uarray(data['n_psi2s_mc_sig'],np.divide(1, np.sqrt(data['n_psi2s_mc_sig']), out=np.zeros_like(data['n_psi2s_mc_sig']), dtype=float, where=data['n_psi2s_mc_sig']!=0))
+    _n_psi2s_mc_kstar = unumpy.uarray(data['n_psi2s_mc_kstar'],np.divide(1, np.sqrt(data['n_psi2s_mc_kstar']), out=np.zeros_like(data['n_psi2s_mc_kstar']), dtype=float, where=data['n_psi2s_mc_kstar']!=0))
 
     if norm:
-        _n_psi2s_sig = _n_psi2s_sig / _n_psi2s_sig.max()
-        _n_psi2s_comb = _n_psi2s_comb / _n_psi2s_comb.max()
-        _n_psi2s_kstar = _n_psi2s_kstar / _n_psi2s_kstar.max()
-        _n_psi2s_sig_mc = _n_psi2s_sig_mc / _n_psi2s_sig_mc.max()
-        _n_psi2s_kstar_mc = _n_psi2s_kstar_mc / _n_psi2s_kstar_mc.max()
+        _n_psi2s_data_sig = _n_psi2s_data_sig / _n_psi2s_data_sig.max()
+        _n_psi2s_data_comb = _n_psi2s_data_comb / _n_psi2s_data_comb.max()
+        _n_psi2s_data_kstar = _n_psi2s_data_kstar / _n_psi2s_data_kstar.max()
+        _n_psi2s_mc_sig = _n_psi2s_mc_sig / _n_psi2s_mc_sig.max()
+        _n_psi2s_mc_kstar = _n_psi2s_mc_kstar / _n_psi2s_mc_kstar.max()
 
     fig, ax = plt.subplots(figsize=(8,8))
-    psig = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_sig), yerr=unumpy.std_devs(_n_psi2s_sig), ls='none', marker='.', color='blue')
-    pcomb = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_comb), yerr=unumpy.std_devs(_n_psi2s_comb), ls='none', marker='.', color='orange')
-    pkstar = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_kstar), yerr=unumpy.std_devs(_n_psi2s_kstar), ls='none', marker='.', color='green')
-    psig_mc = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_sig_mc), yerr=unumpy.std_devs(_n_psi2s_sig_mc), ls='--', marker='', color='blue')
-    pkstar_mc = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_kstar_mc), yerr=unumpy.std_devs(_n_psi2s_kstar_mc), ls='--', marker='', color='green')
+    psig = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_data_sig), yerr=unumpy.std_devs(_n_psi2s_data_sig), ls='none', marker='.', color='blue')
+    pcomb = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_data_comb), yerr=unumpy.std_devs(_n_psi2s_data_comb), ls='none', marker='.', color='orange')
+    pkstar = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_data_kstar), yerr=unumpy.std_devs(_n_psi2s_data_kstar), ls='none', marker='.', color='green')
+    psig_mc = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_mc_sig), yerr=unumpy.std_devs(_n_psi2s_mc_sig), ls='--', marker='', color='blue')
+    pkstar_mc = ax.errorbar(score, unumpy.nominal_values(_n_psi2s_mc_kstar), yerr=unumpy.std_devs(_n_psi2s_mc_kstar), ls='--', marker='', color='green')
     ax.set_xlabel('BDT Score',loc='right', fontsize=18)
-    ax.set_ylabel(r'$N_{Events}$ [A.U.]',loc='top',fontsize=18)
+    ax.set_ylabel(r'$N_{Events}$ [A.U.]' if norm else r'$N_{Events}$',loc='top',fontsize=18)
     ax.tick_params(axis='both', labelsize=14)
 
     if metadata["mass_window"]:
         leg_title = f'${metadata["mass_window"][0]} < m_{{B}} < {metadata["mass_window"][1]}$ GeV' 
     else:
-        leg_title = '$4.7 < m_{B} < 5.7$ GeV' 
-    ax.legend(['Data',psig,pcomb,pkstar,'MC',psig_mc,pkstar_mc], ['',r'$N_{Signal}$', '$N_{Comb. Bkg.}$', '$N_{Part. Reco. Bkg.}$','',r'$N_{B^{+} \rightarrow \psi(2s) K^{+}}$', r'$N_{B^{0} \rightarrow \psi(2s) K^{*0}}$'], title=leg_title, fontsize=16, title_fontsize=16,handler_map={str: LegendTitle({'fontsize': 16})})
+        leg_title = '$4.75 < m_{B} < 5.7$ GeV' 
+    ax.legend(
+        [
+            'Data',
+            psig,
+            pcomb,
+            pkstar,
+            'MC',
+            psig_mc,
+            pkstar_mc
+        ], [
+            '',
+            r'$N_{Signal}$', 
+            '$N_{Comb. Bkg.}$', 
+            '$N_{K^{*} \ Bkg.}$',
+            '',
+            r'$N_{B^{+} \rightarrow J/\psi K^{+}}$', 
+            r'$N_{B \rightarrow J/\psi K^{*}}$',
+        ], 
+        title=leg_title, fontsize=16, title_fontsize=16,handler_map={str: LegendTitle({'fontsize': 16})}
+    )
 
     if show:
         fig.show()
 
-    fig.savefig(path, bbox_inches='tight')
+    outpath = Path(path)
+    fig.savefig(outpath.with_suffix('.pdf'), bbox_inches='tight')
+    fig.savefig(outpath.with_suffix('.png'), bbox_inches='tight')
+    plt.close(fig)
 
 def main(args):
     if args.mode=='all':
@@ -181,6 +264,7 @@ def main(args):
         with open(jpsi_data_file, 'rb') as f:
             jpsi_score_data = pickle.load(f)
         jpsi_kstar_k_scan_plotter(jpsi_score_data, jpsi_output)
+        jpsi_resonant_scan_plotter(jpsi_score_data, str(jpsi_output).replace('kstar_k','resonant'))
         jpsi_comp_scan_plotter(jpsi_score_data, str(jpsi_output).replace('kstar_k','comp'))
 
     elif args.mode=='psi2s':

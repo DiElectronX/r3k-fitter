@@ -4,6 +4,11 @@ import yaml
 import sys
 from pathlib import Path
 
+sys.path.insert(1, str(Path('..').resolve()))
+from utils import *
+
+ALLOWED_MODES = ['jpsi', 'psi2s', 'lowq2']
+
 def main(args):
     input_path = Path(args.input)
     output_path = args.output if args.output else input_path.parent 
@@ -24,22 +29,28 @@ def main(args):
             return 1
 
     rdf = ROOT.RDataFrame(args.tree, args.input)
-    # event_sum = rdf.Filter(args.cuts).Sum(args.weight_branch).GetValue() if args.isMC else rdf.Count().GetValue()
     event_sum = rdf.Sum(args.weight_branch).GetValue() if args.isMC else rdf.Count().GetValue()
     
-    if args.isMC:
-        rdf_sampled = rdf.Define('trig_wgt_reweighted',f'trig_wgt*{args.value/event_sum}')
+    if args.cuts:   
+        event_sum_cuts = rdf.Filter(args.cuts).Sum(args.weight_branch).GetValue() if args.isMC else rdf.Count().GetValue()
+        cut_eff = event_sum_cuts / event_sum
+        try:
+            sf = args.value / event_sum / cut_eff
+        except ZeroDivisionError:
+            print('Zero count')
+            sf = 0
     else:
-        rdf_sampled = rdf.Define('trig_wgt_reweighted',f'trig_wgt').Range(int(args.value*event_sum) if args.value<1 else int(args.value))
+        sf = args.value / event_sum
     
-
+    rdf_sampled = rdf.Define('trig_wgt_reweighted',f'trig_wgt*{sf}')
     rdf_sampled.Snapshot('mytree', str(new_output_path))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', dest='config', type=str, default='fit_cfg.yml', help='fit configuration')
+    parser.add_argument('-c', '--cfg', dest='cfg', type=str, default='fit_cfg.yml', help='fit configuration')
     parser.add_argument('-i', '--input', dest='input', type=str, required=True, help='input file to sample')
     parser.add_argument('-o', '--output', dest='output', type=Path, help='output path')
+    parser.add_argument('-m', '--mode', dest='mode', type=str, choices=ALLOWED_MODES, help='which fit region')
     parser.add_argument('-t', '--tree', dest='tree', type=str, default='mytree', help='input file tree')
     parser.add_argument('-w', '--weight_branch', dest='weight_branch', type=str, default='trig_wgt', help='event weight branch for mc files')
     parser.add_argument('-x', '--cuts', dest='cuts', type=str, default=None, help='cut string to filter sample')
@@ -48,7 +59,23 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--label', dest='label', type=str, help='output file label')
     args, _ = parser.parse_known_args()
 
-    #args.cuts = args.cuts if args.cuts \
-        # else f'(Mll > {fit_params.ll_mass_range[0]} && Mll < {fit_params.ll_mass_range[1]}) && (Bmass > 5.1 && Bmass < 5.4) && bdt_score>{str(fit_params.bdt_score_cut)}', 
+    with open(args.cfg, 'r') as f:
+        cfg = yaml.safe_load(f)
+
+    dataset_params = argparse.Namespace(**cfg['datasets'])
+    output_params = argparse.Namespace(**cfg['output'])
+    fit_params = argparse.Namespace(**cfg['fit'])
+    
+    if args.mode:
+        set_mode(dataset_params, output_params, fit_params, args)
+
+    if args.cuts or args.mode:
+        args.cuts = args.cuts if args.cuts else ('{}>{}&&{}>{}&&{}<{}&&{}>{}&&{}<{}'.format(
+            dataset_params.score_branch, fit_params.bdt_score_cut,
+            dataset_params.ll_mass_branch, fit_params.ll_mass_range[0],
+            dataset_params.ll_mass_branch, fit_params.ll_mass_range[1],
+            dataset_params.b_mass_branch, fit_params.full_mass_range[0],
+            dataset_params.b_mass_branch, fit_params.full_mass_range[1],
+        ))
 
     main(args)

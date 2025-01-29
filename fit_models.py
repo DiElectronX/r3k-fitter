@@ -20,10 +20,10 @@ class PDFDict():
             shape_dict = {
                 'dcb_mean' :   'DS-CB: location parameter of the Gaussian component',
                 'dcb_sigma' :  'DS-CB: width parameter of the Gaussian component',
-                'dcb_alphaL' : 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-                'dcb_nL' :     'DS-CB: exponent of power-law tail on the left',
-                'dcb_alphaR' : 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-                'dcb_nR' :     'DS-CB: exponent of power-law tail on the right',
+                'dcb_alpha1' : 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
+                'dcb_n1' :     'DS-CB: exponent of power-law tail on the left',
+                'dcb_alpha2' : 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
+                'dcb_n2' :     'DS-CB: exponent of power-law tail on the right',
             }
 
             for par, desc in shape_dict.items():
@@ -37,7 +37,7 @@ class PDFDict():
             self.model = ROOT.RooTwoSidedCBShape(
                 self.name+self.channel_label,
                 'Double-sided crystal-ball pdf',
-                xvar, self.dcb_mean, self.dcb_sigma, self.dcb_alphaL, self.dcb_nL, self.dcb_alphaR, self.dcb_nR)
+                xvar, self.dcb_mean, self.dcb_sigma, self.dcb_alpha1, self.dcb_n1, self.dcb_alpha2, self.dcb_n2)
 
         if shape=='cb+gauss':
             shape_dict = {
@@ -304,7 +304,7 @@ class FitModel:
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
 
-    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full', file_formats=['pdf', 'png'], fit_result=None, legend=False, extra_text=None):
+    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full', file_formats=['pdf', 'png'], fit_result=None, legend=False, extra_text=None, file_label=None):
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
 
@@ -329,10 +329,14 @@ class FitModel:
 
         if bins is not None:
             if isinstance(bins,int):
+                nbins = bins
                 bins = [bins, branch.getMin(), branch.getMax()]
+            else:
+                nbins = bins[0]
             bins = ROOT.RooBinning(*bins)
             dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()), ROOT.RooFit.Binning(bins))
         else:
+            nbins= frame.GetNbinsX()
             dataset.plotOn(frame,ROOT.RooFit.Name(dataset.GetName()))
 
         leg.AddEntry(frame.findObject(dataset.GetName()), dataset.GetTitle(), 'PE')
@@ -344,33 +348,62 @@ class FitModel:
             ROOT.RooFit.Name(plot_model.GetName()),
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
+            # ROOT.RooFit.VisualizeError(fit_result),
         )
         leg.AddEntry(frame.findObject(plot_model.GetName()), plot_model.GetTitle(), 'L')
 
         h_pull = frame.pullHist()
         frame_pull = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
         frame_pull.addPlotable(h_pull, 'P')
-        
-        for comp in fit_components:
-            plot_argset = ROOT.RooArgSet(comp)
-            plot_comp = ROOT.RooFit.Components(plot_argset)
-            plot_model.plotOn(
-                frame,
-                plot_comp,
-                fit_range,
-                fit_norm_range,
-                ROOT.RooFit.LineStyle(ROOT.kDashed),
-                ROOT.RooFit.LineColor(next(get_color))
+       
+        used_comps = set() 
+        if isinstance(fit_components,list): 
+            for comp in fit_components:
+                plot_argset = ROOT.RooArgSet(comp)
+                plot_comp = ROOT.RooFit.Components(plot_argset)
+                plot_model.plotOn(
+                    frame,
+                    plot_comp,
+                    fit_range,
+                    fit_norm_range,
+                    ROOT.RooFit.LineStyle(ROOT.kDashed),
+                    ROOT.RooFit.LineColor(next(get_color))
+                )
+                frame_comps = get_roofit_comp_names(frame)
+                new_comp = [i for i in frame_comps if (('Comp' in i) and (i not in used_comps))]
+                assert len(new_comp) == 1
+                leg.AddEntry(frame.findObject(new_comp[0]), comp.GetTitle(), 'L')
+                used_comps.update(frame_comps)
+        elif isinstance(fit_components,dict):
+            for name,comp in fit_components.items():
+                plot_argset = ROOT.RooArgSet(comp)
+                plot_comp = ROOT.RooFit.Components(plot_argset)
+                plot_model.plotOn(
+                    frame,
+                    plot_comp,
+                    fit_range,
+                    fit_norm_range,
+                    ROOT.RooFit.LineStyle(ROOT.kDashed),
+                    ROOT.RooFit.LineColor(next(get_color))
+                )
+                frame_comps = get_roofit_comp_names(frame)
+                new_comp = [i for i in frame_comps if (('Comp' in i) and (i not in used_comps))]
+                assert len(new_comp) == 1
+                leg.AddEntry(frame.findObject(new_comp[0]), name, 'L')
+                used_comps.update(frame_comps)
+
+
+        if fit_result is not None:
+            fit_ndf = nbins-2-len(fit_result.floatParsFinal())
+            chi2 = frame.chiSquare(
+                plot_model.GetName(),
+                dataset.GetName(),
+                fit_ndf,
             )
-            leg.AddEntry(frame.findObject(plot_argset.GetName()), comp.GetTitle(), 'L')
-
-        chi2 = frame.chiSquare(
-            plot_model.GetName(),
-            dataset.GetName(),
-            len(plot_model.getParameters(dataset)),
-        )
-
-        pvalue = ROOT.Math.chisquared_cdf_c(frame.chiSquare(plot_model.GetName(),dataset.GetName()), len(plot_model.getParameters(dataset)))
+            # chi2_var = plot_model.createChi2(dataset)
+            # pvalue = ROOT.Math.chisquared_cdf_c(chi2, fit_ndf)
+            # pvalue = calculate_pvalue(branch, dataset, plot_model, fit_result)
+            # print(pvalue)
 
         c = ROOT.TCanvas('c', ' ', 800, 600)
         pad1 = ROOT.TPad('pad1', 'pad1', 0, 0.3, 1, 1.0)
@@ -393,19 +426,22 @@ class FitModel:
         if legend:
             leg.Draw()
 
-        chi2_text = ROOT.TLatex(0.65, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
-        chi2_text.SetTextSize(0.07)
-        chi2_text.SetNDC(ROOT.kTRUE)
-        chi2_text.Draw()
-        '''
-        pvalue_text = ROOT.TLatex(0.65, 0.7, 'p = {}'.format(pvalue // 0.0001 / 10000))
-        pvalue_text.SetTextSize(0.07)
-        pvalue_text.SetNDC(ROOT.kTRUE)
-        pvalue_text.Draw()
-        '''
+        if fit_result is not None:
+            chi2_text = ROOT.TLatex(0.6, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
+            chi2_text.SetTextSize(0.06)
+            chi2_text.SetNDC(ROOT.kTRUE)
+            chi2_text.Draw()
+
+            '''
+            pvalue_text = ROOT.TLatex(0.6, 0.7, 'p = {}'.format(round(pvalue,3)))
+            pvalue_text.SetTextSize(0.06)
+            pvalue_text.SetNDC(ROOT.kTRUE)
+            pvalue_text.Draw()
+            '''
+
         if extra_text:
-            text = ROOT.TLatex(0.65, 0.6, extra_text)
-            text.SetTextSize(0.07)
+            text = ROOT.TLatex(0.6, 0.7, extra_text)
+            text.SetTextSize(0.06)
             text.SetNDC(ROOT.kTRUE)
             text.Draw()
 
@@ -431,6 +467,7 @@ class FitModel:
         if isinstance(output_filepath,Path):
             output_filepath = str(output_filepath)  
         path_stem, path_ext = output_filepath.rsplit('.',1)
+        path_stem = path_stem if file_label is None else path_stem+f'_{file_label}'
         for fmt in file_formats:
             c.SaveAs(path_stem+'.'+fmt)
         c.Close()

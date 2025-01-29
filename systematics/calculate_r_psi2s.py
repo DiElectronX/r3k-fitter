@@ -74,8 +74,8 @@ def main(args):
     # print(f'J/\u03C8 MC Efficiency = {eff_jpsi_mc} \u00B1 {eff_jpsi_mc_err}')   
     # print(f'\u03C8(2s) MC Efficiency = {eff_psi2s_mc} \u00B1 {eff_psi2s_mc_err}')   
     
-    _n_jpsi    = ufloat(62075.82,297.82)
-    _n_psi2s   = ufloat(4419.40,74.54)
+    _n_jpsi    = ufloat(62925.73,346.56)
+    _n_psi2s   = ufloat(4467.16,73.0)
     _eff_jpsi  = ufloat(eff_jpsi_mc, eff_jpsi_mc_err)
     _eff_psi2s = ufloat(eff_psi2s_mc, eff_psi2s_mc_err)
     _r_psi2s = (_n_psi2s * _eff_jpsi) / (_n_jpsi * _eff_psi2s)
@@ -86,8 +86,8 @@ def main(args):
     _br_psi2s_ee = ufloat(7.94E-3,0.22E-3)
     _r_psi2s_sm = (_br_b_psi2sk * _br_psi2s_ee) / (_br_b_jpsik * _br_jpsi_ee)
     
-    print(f'R(\u03C8(2s)) = {round(_r_psi2s.n,3)} \u00B1 {round(_r_psi2s.std_dev,6)}')   
-    print(f'R(\u03C8(2s)) [SM] = {round(_r_psi2s_sm.n,3)} \u00B1 {round(_r_psi2s_sm.std_dev,6)}')   
+    print(f'R(\u03C8(2s)) = {round(_r_psi2s.n,5)} \u00B1 {round(_r_psi2s.std_dev,6)}')   
+    print(f'R(\u03C8(2s)) [SM] = {round(_r_psi2s_sm.n,5)} \u00B1 {round(_r_psi2s_sm.std_dev,6)}')   
 
     if args.plot:
         fig, ax = plt.subplots(figsize=(8,8))

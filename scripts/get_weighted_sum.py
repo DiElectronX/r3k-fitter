@@ -30,9 +30,11 @@ def main(args):
     df_filtered = df.Filter(f"{b_mass_branch} >= {full_mass_range[0]} && {b_mass_branch} <= {full_mass_range[1]}")
     df_filtered = df_filtered.Filter(f"{score_branch} >= {bdt_score_cut}")
     df_filtered = df_filtered.Filter(f"{ll_mass_branch} >= {ll_mass_range[0]} && {ll_mass_branch} <= {ll_mass_range[1]}")
+    df_filtered = df_filtered.Filter(f"KLmassD0 > 2.")
 
     # Sum the entries in the specified branch
-    sum_weights = round(df_filtered.Sum(weight_branch).GetValue())
+    sum_weights = round(df_filtered.Count().GetValue())
+    #sum_weights = round(df_filtered.Sum(weight_branch).GetValue())
 
     # Print the sum
     print(f'Sum of {weight_branch} in {tree_name}: {sum_weights}')

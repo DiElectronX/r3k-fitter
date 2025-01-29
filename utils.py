@@ -1,6 +1,12 @@
 import os
+import sys
+import re
 import yaml
 import ROOT
+from io import StringIO 
+from tqdm import tqdm
+from tqdm.contrib import tzip
+import tempfile
 import numpy as np
 
 def makedirs(path):
@@ -173,10 +179,10 @@ def write_workspace(output_params, args, model, extra_objs=[]):
 
 
 def integrate(var, model, model_yield, integral_range, fit_result):
-    xset = ROOT.RooArgSet(var)
-    nset = ROOT.RooFit.NormSet(xset)
     var.setRange('int_range', *integral_range)
     rangeset = ROOT.RooFit.Range('int_range')
+    xset = ROOT.RooArgSet(var)
+    nset = ROOT.RooFit.NormSet(xset)
     integral_unscaled = model.createIntegral(xset,nset,rangeset)
     final_yield = np.sum([y.getVal() for y in model_yield]) if isinstance(model_yield,list) else model_yield.getVal()
     final_yield_err = np.sqrt(np.sum([y.getError()**2 for y in model_yield])) if isinstance(model_yield,list) else model_yield.getError()
@@ -188,3 +194,35 @@ def integrate(var, model, model_yield, integral_range, fit_result):
         return 0, 0
 
     return integral, integral_err
+
+
+def get_roofit_comp_names(frame):
+    if not hasattr(ROOT, "capturePrint"):
+        ROOT.gInterpreter.Declare("""
+        #include <sstream>
+        #include <string>
+        #include <ostream>
+
+        std::string capturePrint(RooPlot* frame) {
+            std::ostringstream oss;
+            std::streambuf* old_buf = std::cout.rdbuf(oss.rdbuf());
+            frame->Print();
+            std::cout.rdbuf(old_buf);
+            return oss.str();
+        }
+        """)
+
+    captured_output = ROOT.capturePrint(frame)
+    parentheses_content = re.search(r'\((.*?)\)', captured_output).group(1)
+    matches = [match.split("::")[-1] for match in parentheses_content.split(",")]
+    
+    return matches
+
+def loop_wrapper(iterable, args, unit='working point', title=None):
+    if title:
+        print(title)
+    if isinstance(iterable,zip):
+        unzipped = list(iterable)
+        return iterable if args.verbose else tqdm(unzipped, total=len(unzipped), unit=unit)
+    else:
+        return iterable if args.verbose else tqdm(iterable, total=len(iterable), unit=unit)
