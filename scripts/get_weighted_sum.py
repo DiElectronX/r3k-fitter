@@ -18,7 +18,7 @@ def main(args):
     ll_mass_branch = dataset_params.ll_mass_branch
     score_branch = dataset_params.score_branch
     weight_branch = dataset_params.mc_weight_branch
-    full_mass_range = fit_params.full_mass_range
+    full_mass_range = fit_params.regions[mode]['fit_range']
     bdt_score_cut = fit_params.bdt_score_cut
     ll_mass_range = fit_params.regions[mode]['ll_mass_range']
 

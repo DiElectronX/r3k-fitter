@@ -37,12 +37,14 @@ def set_mode(dataset_params, output_params, fit_params, args):
     assert len(valid_fit_key)==1
     fit_params.region = fit_params.regions[valid_fit_key[0]]
     fit_params.channel_label = '_'+valid_fit_key[0]+'_region'
+    fit_params.fit_range = fit_params.region['fit_range']
     fit_params.ll_mass_range = fit_params.region['ll_mass_range']
     fit_params.fit_defaults = fit_params.region['defaults']
     fit_params.blinded = fit_params.region.get('blinded')
+    fit_params.toy_signal_yield = fit_params.region.get('toy_signal_yield')
 
 
-def save_params(params, template_filename, fit_params, args, get_params=False, just_print=False):
+def save_params(params, template_filename, fit_params, args, update_dict=None, get_params=False, just_print=False, lock_file=False):
     template = {}
     for param in params:
         for key in fit_params.fit_defaults.keys(): 
@@ -58,7 +60,7 @@ def save_params(params, template_filename, fit_params, args, get_params=False, j
             return
 
     if os.path.isfile(template_filename):
-        with open(template_filename) as f:
+        with open(template_filename, 'r') as f:
             old_template = yaml.safe_load(f)
     else:
         old_template = None 
@@ -66,14 +68,19 @@ def save_params(params, template_filename, fit_params, args, get_params=False, j
     if old_template:
         old_template.update(template)
         template = old_template
-   
-    with open(template_filename, 'w') as f:
-        yaml.dump(template, f)
+
+    if update_dict:
+        update_dict.update(template)
+        template = update_dict
+
+    if not lock_file: 
+        with open(template_filename, 'w') as f:
+            yaml.dump(template, f)
 
     return template
 
 
-def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, weight_branch_name=None, weight_norm=None, weight_sf=None):
+def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, set_file=None, set_tree=None, score_cut=None, binned=False, unblind=False, weight_branch_name=None, weight_norm=None, weight_sf=None):
     # Read data from config file or manually set input
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
@@ -82,7 +89,8 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
     
     # Read branches
     tree = f_in.Get(dataset_params.tree_name if set_tree is None else set_tree)
-    b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'B Candidate Mass [GeV]', *fit_params.full_mass_range)
+    # if b_mass_branch is None:
+    #     b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'B Candidate Mass [GeV]', *fit_params.fit_range)
     bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Di-Lepton Mass [GeV]', -100., 100.)
 
@@ -98,14 +106,14 @@ def prepare_inputs(dataset_params, fit_params, isData=True, set_file=None, set_t
     cutvar = ROOT.RooFormulaVar('cutvar','cutvar',cutstring,ROOT.RooArgList(bdt_branch, ll_mass_branch))
 
     # Set fit ranges
-    b_mass_branch.setRange('full', *fit_params.full_mass_range)
+    # b_mass_branch.setRange('full', *fit_params.fit_range)
     blindDataset = (isData and (fit_params.blinded)) and not unblind
-    if blindDataset:
-        assert len(fit_params.blinded)==2
-        sb1_range = (fit_params.full_mass_range[0], fit_params.blinded[0])
-        sb2_range = (fit_params.blinded[1], fit_params.full_mass_range[1])
-        b_mass_branch.setRange('sb1', *sb1_range)
-        b_mass_branch.setRange('sb2', *sb2_range)
+    # if blindDataset:
+    #     assert len(fit_params.blinded)==2
+    #     sb1_range = (fit_params.fit_range[0], fit_params.blinded[0])
+    #     sb2_range = (fit_params.blinded[1], fit_params.fit_range[1])
+    #     b_mass_branch.setRange('sb1', *sb1_range)
+    #     b_mass_branch.setRange('sb2', *sb2_range)
 
     # Generate dataset and scale if specified
     if isData:
@@ -178,20 +186,22 @@ def write_workspace(output_params, args, model, extra_objs=[]):
     f_out.Close()
 
 
-def integrate(var, model, model_yield, integral_range, fit_result):
+def integrate(var, model, integral_range, coeffs=None):
     var.setRange('int_range', *integral_range)
     rangeset = ROOT.RooFit.Range('int_range')
     xset = ROOT.RooArgSet(var)
     nset = ROOT.RooFit.NormSet(xset)
-    integral_unscaled = model.createIntegral(xset,nset,rangeset)
-    final_yield = np.sum([y.getVal() for y in model_yield]) if isinstance(model_yield,list) else model_yield.getVal()
-    final_yield_err = np.sqrt(np.sum([y.getError()**2 for y in model_yield])) if isinstance(model_yield,list) else model_yield.getError()
+    integral_unscaled = model.createIntegral(xset, nset, rangeset)
+
+    if coeffs is None:
+        final_yield = model.expectedEvents(xset)
+        final_yield_err = 0
+    else:
+        final_yield = np.sum([y.getVal() for y in coeffs]) if isinstance(coeffs,list) else coeffs.getVal()
+        final_yield_err = np.sqrt(np.sum([y.getError()**2 for y in coeffs])) if isinstance(coeffs,list) else coeffs.getError()
+   
     integral = integral_unscaled.getVal() * final_yield
-    
-    try:
-        integral_err = integral * np.linalg.norm([integral_unscaled.getPropagatedError(fit_result, ROOT.RooArgSet(var))/integral_unscaled.getVal(), final_yield_err/final_yield])
-    except ZeroDivisionError:
-        return 0, 0
+    integral_err = final_yield_err*integral_unscaled.getVal()
 
     return integral, integral_err
 

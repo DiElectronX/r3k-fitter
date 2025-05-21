@@ -5,7 +5,7 @@ from utils import *
 
 class PDFDict():
     def __init__(self, name, shape, xvar, parameters, dataset=None, let_float=False, channel=None):
-        allowed_shapes = ['dcb', 'cb+gauss', 'dcb+dcb', 'cb+cb', 'exp', 'poly', 'generic', 'kde']
+        allowed_shapes = ['dcb', 'cb+gauss', 'dcb+dcb', 'cb+cb', 'gauss', 'exp', 'poly', 'generic', 'kde']
         assert shape in allowed_shapes, "Choose a PDF shape from list:{}".format(allowed_shapes)
 
         self.name = name
@@ -16,6 +16,25 @@ class PDFDict():
 
 
     def build_model(self, shape, xvar, parameters, let_float, dataset, label=''):
+        if shape=='gauss':
+            shape_dict = {
+                'gauss_mean' :   'Gaussian: location parameter of the Gaussian',
+                'gauss_sigma' :  'Gaussian: width parameter of the Gaussian',
+            }
+
+            for par, desc in shape_dict.items():
+                name_fmt = par+'_'+label if label else par
+                setattr(self, par, ROOT.RooRealVar(
+                    name_fmt+self.channel_label,
+                    desc,
+                    *parameters[name_fmt])
+                )
+
+            self.model = ROOT.RooGaussian(
+                self.name+self.channel_label,
+                'Gaussian pdf',
+                xvar, self.gauss_mean, self.gauss_sigma)
+
         if shape=='dcb':
             shape_dict = {
                 'dcb_mean' :   'DS-CB: location parameter of the Gaussian component',
@@ -291,6 +310,7 @@ class FitModel:
             ROOT.RooFit.Range(fit_range),
             #ROOT.RooFit.NormRange(fit_norm_range),
             printlevel,
+            # ROOT.RooFit.Extended(True),
         ]
 
         if self.constraints:
@@ -304,9 +324,30 @@ class FitModel:
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
 
-    def plot_fit(self, branch, dataset, output_filepath, fit_components=[], bins=None, fit_range='full', fit_norm_range='full', file_formats=['pdf', 'png'], fit_result=None, legend=False, extra_text=None, file_label=None):
+    def plot_fit(self, 
+                 branch, 
+                 dataset, 
+                 output_filepath, 
+                 fit_components=[], 
+                 bins=None, 
+                 fit_range='full', 
+                 fit_norm_range='full', 
+                 yrange=None,
+                 file_formats=['pdf', 'png'], 
+                 fit_result=None, 
+                 legend=False, 
+                 extra_text=None, 
+                 file_label=None,
+                 data_error=ROOT.RooAbsData.Poisson):
+
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
+
+        if fit_range!='full':
+            dataset = dataset.reduce(ROOT.RooFit.CutRange(fit_range))
+
+        fit_range = ROOT.RooFit.Range(fit_range)
+        fit_norm_range = ROOT.RooFit.NormRange(fit_norm_range)
 
         hex_colors = ['#000000', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
         root_colors = [ROOT.TColor.GetColor(col) for col in hex_colors]
@@ -314,18 +355,11 @@ class FitModel:
 
         frame = branch.frame(
             ROOT.RooFit.Title(' '),
-            #ROOT.RooFit.Range('full'),
-            #fit_range,
+            fit_range,
             #fit_norm_range,
         )
 
         leg = ROOT.TLegend(.1, .6, .4, .9)
-
-        if fit_range!='full':
-            dataset = dataset.reduce(ROOT.RooFit.CutRange(fit_range))
-
-        fit_range = ROOT.RooFit.Range(fit_range)
-        fit_norm_range = ROOT.RooFit.NormRange(fit_norm_range)
 
         if bins is not None:
             if isinstance(bins,int):
@@ -334,17 +368,17 @@ class FitModel:
             else:
                 nbins = bins[0]
             bins = ROOT.RooBinning(*bins)
-            dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()), ROOT.RooFit.Binning(bins))
+            dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()), ROOT.RooFit.Binning(bins),ROOT.RooFit.DataError(data_error))
         else:
             nbins= frame.GetNbinsX()
-            dataset.plotOn(frame,ROOT.RooFit.Name(dataset.GetName()))
+            dataset.plotOn(frame,ROOT.RooFit.Name(dataset.GetName()),ROOT.RooFit.DataError(data_error))
 
         leg.AddEntry(frame.findObject(dataset.GetName()), dataset.GetTitle(), 'PE')
 
         plot_model.plotOn(
             frame,
-            ROOT.RooFit.Range('full'),
-            fit_norm_range,
+            fit_range,
+            # fit_norm_range,
             ROOT.RooFit.Name(plot_model.GetName()),
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
@@ -353,7 +387,7 @@ class FitModel:
         leg.AddEntry(frame.findObject(plot_model.GetName()), plot_model.GetTitle(), 'L')
 
         h_pull = frame.pullHist()
-        frame_pull = branch.frame(ROOT.RooFit.Title(' '), ROOT.RooFit.Range('full'))
+        frame_pull = branch.frame(ROOT.RooFit.Title(' '), fit_range)
         frame_pull.addPlotable(h_pull, 'P')
        
         used_comps = set() 
@@ -365,7 +399,7 @@ class FitModel:
                     frame,
                     plot_comp,
                     fit_range,
-                    fit_norm_range,
+                    # fit_norm_range,
                     ROOT.RooFit.LineStyle(ROOT.kDashed),
                     ROOT.RooFit.LineColor(next(get_color))
                 )
@@ -398,7 +432,7 @@ class FitModel:
             chi2 = frame.chiSquare(
                 plot_model.GetName(),
                 dataset.GetName(),
-                fit_ndf,
+                len(fit_result.floatParsFinal()),
             )
             # chi2_var = plot_model.createChi2(dataset)
             # pvalue = ROOT.Math.chisquared_cdf_c(chi2, fit_ndf)
@@ -407,7 +441,7 @@ class FitModel:
 
         c = ROOT.TCanvas('c', ' ', 800, 600)
         pad1 = ROOT.TPad('pad1', 'pad1', 0, 0.3, 1, 1.0)
-        pad1.SetBottomMargin(0.02)  # joins upper and lower plot
+        pad1.SetBottomMargin(0.02)
         pad1.SetGridx()
         pad1.Draw()
         c.cd()
@@ -419,15 +453,20 @@ class FitModel:
 
         pad1.cd()
         frame.Draw()
+        # ROOT.gPad.SetLogy()
+        # ROOT.gPad.Update()
         ax_y_main = frame.GetYaxis()
         ax_x_main = frame.GetXaxis()
         ax_x_main.SetLabelOffset(3.)
-        
+       
+        if yrange:
+            ax_y_main.SetRangeUser(*yrange)
+
         if legend:
             leg.Draw()
 
         if fit_result is not None:
-            chi2_text = ROOT.TLatex(0.6, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,1)))
+            chi2_text = ROOT.TLatex(0.48, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,2)))
             chi2_text.SetTextSize(0.06)
             chi2_text.SetNDC(ROOT.kTRUE)
             chi2_text.Draw()
@@ -440,7 +479,7 @@ class FitModel:
             '''
 
         if extra_text:
-            text = ROOT.TLatex(0.6, 0.7, extra_text)
+            text = ROOT.TLatex(0.48, 0.7, extra_text)
             text.SetTextSize(0.06)
             text.SetNDC(ROOT.kTRUE)
             text.Draw()
@@ -458,6 +497,7 @@ class FitModel:
         ax_y_pull.SetTitle('#frac{y - y_{fit}}{#sigma_{y}}')
         ax_y_pull.SetTitleOffset(.35)
         ax_y_pull.SetNdivisions(8)
+        ax_y_pull.SetRangeUser(-5,5)
 
         ax_y_pull.SetTitleSize(2.8*ax_y_main.GetTitleSize())
         ax_y_pull.SetLabelSize(2.8*ax_y_main.GetLabelSize())
