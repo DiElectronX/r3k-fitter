@@ -66,6 +66,9 @@ class PDFDict():
                 'cb_sigma' :    'CB+Gauss: Width of CB component',
                 'cb_alpha' :    'CB+Gauss: Location of transition to a power law of CB component',
                 'cb_n' :        'CB+Gauss: Exponent of power-law tail of CB component',
+                
+                'gauss_coeff' : 'CB+Gauss: Gaussian Coefficient',
+                'cb_coeff' :    'CB+Gauss: CB Coefficient',
             }
 
             for par, desc in shape_dict.items():
@@ -86,8 +89,9 @@ class PDFDict():
                 'CB+Gauss: CB component',
                 xvar, self.cb_mean, self.cb_sigma, self.cb_alpha, self.cb_n)
 
-            self.cb_coeff = ROOT.RooRealVar('cb_coeff'+self.channel_label, 'CB Coefficient', 0.8, 0.0, 1.0+channel_label)
-            self.gauss_coeff = ROOT.RooRealVar('gauss_coeff'+self.channel_label, 'Gaussian Coefficient', 0.2,0.0, 1.0+channel_label)
+            # self.cb_coeff = ROOT.RooRealVar('cb_coeff'+self.channel_label, 'CB Coefficient', 0.8, 0.0, 1.0+channel_label)
+            # self.gauss_coeff = ROOT.RooRealVar('gauss_coeff'+self.channel_label, 'Gaussian Coefficient', 0.2,0.0, 1.0+channel_label)
+            
             self.model = ROOT.RooAddPdf(
                  self.name+self.channel_label,
                 'CB+Gauss',
@@ -149,7 +153,10 @@ class PDFDict():
                 'cb2_mean'  : 'CB+CB: Mean of CB2 component', 
                 'cb2_sigma' : 'CB+CB: Width of CB2 component', 
                 'cb2_alpha' : 'CB+CB: Location of transition to a power law of CB2 component', 
-                'cb2_n'     : 'CB+CB: Exponent of power-law tail of CB2 component', 
+                'cb2_n'     : 'CB+CB: Exponent of power-law tail of CB2 component',
+                
+                'cb1_coeff' : 'CB+CB: CB1 Coefficient',
+                'cb2_coeff' : 'CB+CB: CB2 Coefficient',
             }
 
             for par, desc in shape_dict.items():
@@ -170,8 +177,10 @@ class PDFDict():
                 'CB+CB: CB2 component',
                 xvar, self.cb2_mean, self.cb2_sigma, self.cb2_alpha, self.cb2_n)
 
-            self.cb1_coeff = ROOT.RooRealVar('cb1_coeff'+self.channel_label, 'CB1 Coefficient',1., 0.0, 1000000.)
-            self.cb2_coeff = ROOT.RooRealVar('cb2_coeff'+self.channel_label, 'CB2 Coefficient',1., 0.0, 1000000.)
+            # These two coeff are mentioned out --> since Im trying to define in fitting config
+            # self.cb1_coeff = ROOT.RooRealVar('cb1_coeff'+self.channel_label, 'CB1 Coefficient',1., 0.0, 1000000.)
+            # self.cb2_coeff = ROOT.RooRealVar('cb2_coeff'+self.channel_label, 'CB2 Coefficient',1., 0.0, 1000000.)
+            
             self.model = ROOT.RooAddPdf(
                 self.name+self.channel_label,
                 'CB+CB',
@@ -212,7 +221,7 @@ class PDFDict():
 
             diff = ROOT.RooFormulaVar('diff','{}-{}'.format(xvar.GetName(), self.poly_offset.GetName()), ROOT.RooArgList(xvar, self.poly_offset))
 
-            self.model = ROOT.RooPolynomial(self.name+self.channel_label, 'Exponential PDF', xvar, ROOT.RooArgList(*model_pars))
+            self.model = ROOT.RooPolynomial(self.name+self.channel_label, 'Polynomial PDF', xvar, ROOT.RooArgList(*model_pars))
 
         if shape=='generic':
             shape_dict = {
@@ -303,7 +312,7 @@ class FitModel:
         self.constraints.update(constraint_dict)
 
 
-    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1)):
+    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), isMinos=False):
         fit_args = [
             dataset,
             ROOT.RooFit.Save(),
@@ -312,6 +321,11 @@ class FitModel:
             printlevel,
             # ROOT.RooFit.Extended(True),
         ]
+        if isMinos: # adding Minos scan
+            fit_args += [
+                ROOT.RooFit.Strategy(1), # strategy 1 failed in some cases (mainly for Signal MC omn relaxed window)
+                ROOT.RooFit.Minos(True), # for MC Signal
+            ]
 
         if self.constraints:
             constraintset = ROOT.RooArgSet()
@@ -322,6 +336,12 @@ class FitModel:
             # fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
 
         self.fit_result = self.fit_model.fitTo(*fit_args)
+
+        # **Convergence checks**
+        # fit_status = self.fit_result.status()
+        # cov_quality = self.fit_result.covQual()
+        # edm_value = self.fit_result.edm()
+        # print(f"Fit Status: {fit_status}, Covariance Quality: {cov_quality}, EDM: {edm_value}")
 
 
     def plot_fit(self, 
@@ -466,7 +486,7 @@ class FitModel:
             leg.Draw()
 
         if fit_result is not None:
-            chi2_text = ROOT.TLatex(0.48, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,2)))
+            chi2_text = ROOT.TLatex(0.7, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,2)))
             chi2_text.SetTextSize(0.06)
             chi2_text.SetNDC(ROOT.kTRUE)
             chi2_text.Draw()
@@ -479,7 +499,7 @@ class FitModel:
             '''
 
         if extra_text:
-            text = ROOT.TLatex(0.48, 0.7, extra_text)
+            text = ROOT.TLatex(0.625, 0.7, extra_text)
             text.SetTextSize(0.06)
             text.SetNDC(ROOT.kTRUE)
             text.Draw()

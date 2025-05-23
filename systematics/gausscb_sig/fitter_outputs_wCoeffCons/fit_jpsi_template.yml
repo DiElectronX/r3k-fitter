@@ -1,0 +1,15 @@
+cb_alpha_sig_pdf: 3.0608082832512036
+cb_coeff_sig_pdf: 24930.74472165756
+cb_mean_sig_pdf: 5.211988345915236
+cb_n_sig_pdf: 0.8051395441110712
+cb_sigma_sig_pdf: 0.08653274056455891
+dcb_alpha1_part_bkg_pdf_jpsipi_pion: 1.3094384753914214
+dcb_alpha2_part_bkg_pdf_jpsipi_pion: 0.9027238733914984
+dcb_mean_part_bkg_pdf_jpsipi_pion: 5.374314336378542
+dcb_n1_part_bkg_pdf_jpsipi_pion: 99.99998986885208
+dcb_n2_part_bkg_pdf_jpsipi_pion: 99.99985413263374
+dcb_sigma_part_bkg_pdf_jpsipi_pion: 0.08713538345195938
+exp_slope_comb_bkg_pdf: -1.642616845846161
+gauss_coeff_sig_pdf: 27259.130787229526
+gauss_mean_sig_pdf: 5.283788243185341
+gauss_sigma_sig_pdf: 0.046290700990123966
