@@ -11,28 +11,7 @@ datasets:
   k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_k0star_jpsi_pion_D0_cut_corrected.root
   chic1_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_chic1_jpsi_kaon_D0_cut_corrected.root
   jpsipi_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_jpsipi_jpsi_pion_D0_cut_corrected.root
-  # # up kaon down pion
-  # kstar_jpsi_pion_file: updown_sampled_datafiles/measurement_kstar_jpsi_pion_D0_cut_down_half_sampled.root
-  # kstar_jpsi_kaon_file: updown_sampled_datafiles/measurement_kstar_jpsi_kaon_D0_cut_up_half_sampled.root
-  # k0star_jpsi_kaon_file: updown_sampled_datafiles/measurement_k0star_jpsi_kaon_D0_cut_up_half_sampled.root
-  # k0star_jpsi_pion_file: updown_sampled_datafiles/measurement_k0star_jpsi_pion_D0_cut_down_half_sampled.root
-  # chic1_jpsi_kaon_file: updown_sampled_datafiles/measurement_chic1_jpsi_kaon_D0_cut_up_half_sampled.root
-  # jpsipi_jpsi_kaon_file: updown_sampled_datafiles/measurement_jpsipi_jpsi_pion_D0_cut_down_half_sampled.root
-  # # down kaon up pion
-  # kstar_jpsi_pion_file: updown_sampled_datafiles/measurement_kstar_jpsi_pion_D0_cut_up_half_sampled.root
-  # kstar_jpsi_kaon_file: updown_sampled_datafiles/measurement_kstar_jpsi_kaon_D0_cut_down_half_sampled.root
-  # k0star_jpsi_kaon_file: updown_sampled_datafiles/measurement_k0star_jpsi_kaon_D0_cut_down_half_sampled.root
-  # k0star_jpsi_pion_file: updown_sampled_datafiles/measurement_k0star_jpsi_pion_D0_cut_up_half_sampled.root
-  # chic1_jpsi_kaon_file: updown_sampled_datafiles/measurement_chic1_jpsi_kaon_D0_cut_down_half_sampled.root
-  # jpsipi_jpsi_kaon_file: updown_sampled_datafiles/measurement_jpsipi_jpsi_pion_D0_cut_up_half_sampled.root
-  # # k(0)star_jpsi_kaon <-> k(0)star_jpsi_pion
-  # kstar_jpsi_pion_file: updown_sampled_datafiles/measurement_kstar_jpsi_pion_D0_cut_kaonWeighted.root
-  # kstar_jpsi_kaon_file: updown_sampled_datafiles/measurement_kstar_jpsi_kaon_D0_cut_pionWeighted.root
-  # k0star_jpsi_kaon_file: updown_sampled_datafiles/measurement_k0star_jpsi_kaon_D0_cut_pionWeighted.root
-  # k0star_jpsi_pion_file: updown_sampled_datafiles/measurement_k0star_jpsi_pion_D0_cut_kaonWeighted.root
-  # chic1_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_chic1_jpsi_kaon_D0_cut_corrected.root
-  # jpsipi_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_jpsipi_jpsi_pion_D0_cut_corrected.root
-  # default Psi2S
+  # default psi2s
   kstar_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_kstar_psi2s_pion_D0_cut_corrected.root
   k0star_psi2s_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_k0star_psi2s_kaon_D0_cut_corrected.root
   k0star_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NoahBDToutput_WithTriggerORapplied_05_12_24/D0cutApplied/measurement_k0star_psi2s_pion_D0_cut_corrected.root
@@ -73,47 +52,11 @@ fit:
         dcb2_n1_sig_pdf:           [1.63, 0.5, 100.]
         dcb2_alpha2_sig_pdf:       [2.85, .1, 6.]
         dcb2_n2_sig_pdf:           [7.86, 0.5, 100.]
-        # # Signal MC: CB(tail)+Gauss(main)
-        # gauss_mean_sig_pdf:   [5.28, 5.2, 5.4] # main
-        # gauss_sigma_sig_pdf:  [0.04, 0.01, 0.5]
-        # gauss_coeff_sig_pdf:  [95961, 0, 200000]
-        # cb_mean_sig_pdf:      [5.17, 5.0, 5.25] # tail
-        # cb_sigma_sig_pdf:     [0.05, 0.01, 0.5]
-        # cb_coeff_sig_pdf:     [20729, 0, 200000]
-        # cb_alpha_sig_pdf:     [2.25, 1., 6.]
-        # cb_n_sig_pdf:         [7.86, 0.5, 100]
-        # # Signal MC: cb(main)+gauss(tail)
-        # gauss_mean_sig_pdf:   [5.17, 5.0, 5.25] # Tail
-        # gauss_sigma_sig_pdf:  [0.05, 0.01, 0.5]
-        # gauss_coeff_sig_pdf:  [20729, 0, 200000]
-        # cb_mean_sig_pdf:      [5.28, 5.2, 5.4] # main
-        # cb_sigma_sig_pdf:     [0.04, 0.01, 0.5]
-        # cb_coeff_sig_pdf:     [95961, 0, 200000]
-        # cb_alpha_sig_pdf:     [2.25, 0.5, 6]
-        # cb_n_sig_pdf:         [7.86, 0.5, 100]
-        # # Signal MC: cb+cb
-        # cb1_mean_sig_pdf:   [5.28, 5.2, 5.4] # cb1 as a main distribution
-        # cb1_sigma_sig_pdf:  [0.05, 0.01, 0.5]
-        # cb1_alpha_sig_pdf:  [3.23, 1., 10.]
-        # cb1_n_sig_pdf:      [6.59, 0.1, 50] # v1 =  [6.59, 0.1, 100.]
-        # cb1_coeff_sig_pdf:  [95961, 0, 200000]
-        # cb2_mean_sig_pdf:   [5.17, 5.0, 5.25] # radiative tail
-        # cb2_sigma_sig_pdf:  [0.04, 0.01, 0.5]
-        # cb2_alpha_sig_pdf:  [2.25, 1., 6.]
-        # cb2_n_sig_pdf:      [1.63, 0.5, 50] # v1 =  [1.63, 0.5, 100.]
-        # cb2_coeff_sig_pdf:  [20729, 0, 200000]
         # combinatorial bkg: exponential
         exp_slope_comb_bkg_pdf:    [-2.3, -5., 0.]
         exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
         erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
         erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
-        # combinatorial bkg: poynomial 2nd/4th degree
-        poly_a0_comb_bkg_pdf:  [1.0, 0, 10]
-        poly_a1_comb_bkg_pdf:  [-1.39, -5.0, 0.]
-        poly_a2_comb_bkg_pdf:  [0.97, 0.0, 5.0]
-        poly_a3_comb_bkg_pdf:  [-0.45, -5.0, 0.]  # cross out to consider 2nd degree
-        poly_a4_comb_bkg_pdf:  [0.16, 0.0, 5.0]   # cross out to consider 2nd degree
-        poly_offset_comb_bkg_pdf: [0, -100.0, 100.0]
         # Partial reconstructed background kstar/k0star: kde
         kde_mirror_part_bkg_pdf: 'MirrorLeft'
         kde_rho_part_bkg_pdf:    2
