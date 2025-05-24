@@ -28,14 +28,14 @@ datasets:
 
 output:
   # output_dir: fitter_outputs/
-  output_dir: dcbdcb_sig_check/
+  output_dir: relaxed_2.8/fitter_outputs/
 
 fit:
   bdt_score_cut: 3.95
   regions:
     jpsi:
       fit_range: [4.6, 5.7]
-      ll_mass_range: [2.9, 3.2]
+      ll_mass_range: [2.9, 3.2] # relaxing the ll_mass_range
       defaults:
         # Signal MC: dcb+dcb
         dcb1_coeff_sig_pdf:        [95961, 0., 200000]
