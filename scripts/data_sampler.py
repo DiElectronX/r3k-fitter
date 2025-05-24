@@ -74,8 +74,8 @@ if __name__ == '__main__':
             dataset_params.score_branch, fit_params.bdt_score_cut,
             dataset_params.ll_mass_branch, fit_params.ll_mass_range[0],
             dataset_params.ll_mass_branch, fit_params.ll_mass_range[1],
-            dataset_params.b_mass_branch, fit_params.full_mass_range[0],
-            dataset_params.b_mass_branch, fit_params.full_mass_range[1],
+            dataset_params.b_mass_branch, fit_params.fit_range[0],
+            dataset_params.b_mass_branch, fit_params.fit_range[1],
         ))
 
     main(args)

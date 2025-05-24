@@ -18,7 +18,4 @@ dcb_mean_part_bkg_pdf_jpsipi_pion: 5.374314336378542
 dcb_n1_part_bkg_pdf_jpsipi_pion: 99.99998986885208
 dcb_n2_part_bkg_pdf_jpsipi_pion: 99.99985413263374
 dcb_sigma_part_bkg_pdf_jpsipi_pion: 0.08713538345195938
-poly_a0_comb_bkg_pdf: 6.122144382208664
-poly_a1_comb_bkg_pdf: -1.692144593582638
-poly_a2_comb_bkg_pdf: 0.01871508976448999
-poly_offset_comb_bkg_pdf: 0.015160325138424469
+exp_slope_comb_bkg_pdf: -1.642616845846161
