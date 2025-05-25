@@ -27,8 +27,8 @@ datasets:
   mc_weight_branch: trig_wgt
 
 output:
-  # output_dir: fitter_outputs/
-  output_dir: relaxed_2.8/fitter_outputs/
+  output_dir: fitter_outputs2
+  # output_dir: relaxed_2.8/fitter_outputs/
 
 fit:
   bdt_score_cut: 3.95

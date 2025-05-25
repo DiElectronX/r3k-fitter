@@ -81,9 +81,7 @@ def get_eff_cut_and_count(output_params, file_name, tree_name, cut_string, weigh
         pprint(output_dict)
         return eff, unc
 
-
-
-def jpsi_fit_dcbdcb_sig(dataset_params, output_params, fit_params, args, write=True, get_yields=False, file_label=None, legend_text=None, param_file_lock=False, coeffCon=False, isMinos=False):
+def jpsi_fit(dataset_params, output_params, fit_params, args, write=True, get_yields=False, file_label=None, legend_text=None, param_file_lock=False, coeffCon=False, isMinos=False, template=None):
     '''
     The standard full fitting with 
         signal: dcb+dcb
@@ -283,7 +281,8 @@ def jpsi_fit_dcbdcb_sig(dataset_params, output_params, fit_params, args, write=T
 
     if args.cache:
         # Load fit shape templates from file
-        with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), 'r') as file:
+        # with open(os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), 'r') as file:
+        with open(template, 'r') as file:
             print('Load template: ', file.name)
             template = yaml.safe_load(file)
 
@@ -434,18 +433,49 @@ def main(args):
     # args.mode = 'jpsi'
     set_mode(dataset_params, output_params, fit_params, args)
 
-    relaxed_windows = [2.5, 2.6, 2.7, 2.8]
+# #===========================================================================================================
+# Jpsi Radiative Tail Scans across relaxed ll_mass
+# #===========================================================================================================
+    low_q2_window = [2.5, 2.6, 2.7, 2.8, 2.9]
+
+    coeffCon_flag = [False, True]
+    isMinos_flag = [False, True]
+
+    for q2 in low_q2_window:
+        fit_params.ll_mass_range[0] = q2
+        for minos in isMinos_flag:
+            args.cache = False # template is different depending on the minos_flag
+            template = None
+            for coeffCon in coeffCon_flag:
+                suffix = ""
+                if coeffCon:
+                    suffix += '_wCoeffCon'
+                if minos:
+                    suffix += '_minos'
+
+                # if q2 == 2.5 and suffix == '':
+                #     continue
+
+                # redirecting path
+                tmp_output_params = copy.deepcopy(output_params)
+                tmp_output_params.output_dir = os.path.join(str(q2), output_params.output_dir + suffix)
+                print(tmp_output_params.output_dir)
+                
+                # Fitting
+                jpsi_fit(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=coeffCon, isMinos=minos, template=template)
+                
+                # retreiving template for the next run
+                args.cache = True
+                template = os.path.join(tmp_output_params.output_dir, 'fit_jpsi_template.yml')
 
 # #===========================================================================================================
-# Jpsi Radiative Tail Systemics study 
+# MC Jpsi yield cut and count
 # #===========================================================================================================
-    # 1.) Jpsi Yield: from the data fiting using do_jpsi_control_region_fit function
-    do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, get_yields=True)
-
+    '''
     # 2.) With analysis BDT cut, run cut and count in MC to get yield_1_mc
     set_mode(dataset_params, output_params, fit_params, args)
 
-    FILE_NAME
+    # FILE_NAME
     dataset_params.samesign_data_file # same sign ee combinatorial background
     dataset_params.kstar_jpsi_kaon_file # kstar_kaon
     dataset_params.kstar_jpsi_pion_file # kstar_pion
@@ -541,24 +571,7 @@ def main(args):
 
         # save to csv
         save_yields_err(yields_dict, tmp_output_params, 'mc_yield.csv')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    '''
 
 
 
@@ -589,6 +602,7 @@ def main(args):
 # #===========================================================================================================
 # Fit Parameterization systematics: same shape script but wCoeff/noCoeff minos/noMinos runs
 # #===========================================================================================================
+    '''
     dir_path = output_params.output_dir
 
     print(dir_path)
@@ -607,7 +621,7 @@ def main(args):
     tmp_output_params = copy.deepcopy(output_params)
     tmp_output_params.output_dir = dir_path+'fitter_outputs_wCoeffCon_minos/'
     jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=True, isMinos=True)
-    
+    '''
 # #===========================================================================================================
 # Fit Parameterization systematics: partial reconstructed background --> up/down sampled for k(0)star --> pion/kaon
 # #===========================================================================================================
