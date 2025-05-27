@@ -88,7 +88,8 @@ def data_yield_ratio(data_file_nominal, data_file_relaxed, dir_name):
         yields_uncer = ufloat(yields.get_yield('yield_sig'), yields.get_yield('yield_sig_err'))
         ratio_yield = yields_uncer/yield_nominal_uncer
 
-        lower_cut = (file.split('/')[-2].split('_')[-1]).replace('.','_')
+        # lower_cut = (file.split('/')[-2].split('_')[-1]).replace('.','_')
+        lower_cut = file.split('/')[0].replace('.','_')
         # if lower_cut == "nominal":
         #     lower_cut = "2_95"
         print(f'{lower_cut} : {ratio_yield}')
@@ -118,32 +119,23 @@ def main():
 # #===========================================================================================================
 # Fit Parameterization systematics: yield-ratios with relaxed windows
 # #===========================================================================================================
-    # mc_nominal = 'fit_parameterization/CBGauss_s1_minos_v2_2.9/mc_yield.csv'
-    # mc_relaxed = ['fit_parameterization/CBGauss_s1_minos_v2_2.8/mc_yield.csv',
-    #               'fit_parameterization/CBGauss_s1_minos_v2_2.7/mc_yield.csv',
-    #               'fit_parameterization/CBGauss_s1_minos_v2_2.6/mc_yield.csv',
-    #               'fit_parameterization/CBGauss_s1_minos_v2_2.5/mc_yield.csv',]
+    mc_nominal = '2.9/mc_yield.csv'
+    mc_relaxed = ['2.8/mc_yield.csv',
+                  '2.7/mc_yield.csv',
+                  '2.6/mc_yield.csv',
+                  '2.5/mc_yield.csv',]
 
-    # data_monimal = 'fit_parameterization/CBGauss_s1_minos_v2_2.9/yield.csv'
-    # data_relaxed = ['fit_parameterization/CBGauss_s1_minos_v2_2.8/yield.csv',
-    #                 'fit_parameterization/CBGauss_s1_minos_v2_2.7/yield.csv',
-    #                 'fit_parameterization/CBGauss_s1_minos_v2_2.6/yield.csv',
-    #                 'fit_parameterization/CBGauss_s1_minos_v2_2.5/yield.csv',]
+    data_monimal = '2.9_wExpCon_v8/fitter_outputs_minos/yield.csv'
+    data_relaxed = ['2.8_wExpCon_v8/fitter_outputs_minos/yield.csv',
+                    '2.7_wExpCon_v8/fitter_outputs_minos/yield.csv',
+                    '2.6_wExpCon_v8/fitter_outputs_minos/yield.csv',
+                    '2.5_wExpCon_v8/fitter_outputs_minos/yield.csv',]
 
-    # output_dir = 'fit_parameterization/CBGauss_s1_minos_v2_yield_ratio'
+    output_dir = 'yield_systematics_wExpCon_minos_v8'
 
-    # # computing the ratio
-    # mc_yield_ratio(mc_nominal, mc_relaxed, output_dir)
-    # data_yield_ratio(data_monimal, data_relaxed, output_dir)
-
-# #===========================================================================================================
-# Fit Parameterization systematics: Nominal Comparison between CB+Gaussian VS dcb+dcb
-# #===========================================================================================================
-    data_CBGauss_nominal_yield = 'fit_parameterization/CBGauss_s1_minos_v2_2.9/yield.csv'
-    data_dcbdcb_nominal_yield = 'jpsi_radiative_tail/vDefault_wPartConFalse_wdcbCon/vDefault_wPartConFalse_wdcbCon_s1_minos/fitter_outputs_2.9/yields.csv'
-    output_dir = 'fit_parameterization/CBGauss_s1_minos_v2_yield_ratio'
-    output_file = 'nominal_yield_error_CBgauss_dcbdcb.csv'
-    nominal_yield_error(data_dcbdcb_nominal_yield, data_CBGauss_nominal_yield, output_dir, output_file)
+    # computing the ratio
+    mc_yield_ratio(mc_nominal, mc_relaxed, output_dir)
+    data_yield_ratio(data_monimal, data_relaxed, output_dir)
 
 if __name__ == '__main__':
-    main()                                                                                                       150,2         Bot
+    main()

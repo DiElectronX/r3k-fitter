@@ -320,10 +320,11 @@ class FitModel:
             #ROOT.RooFit.NormRange(fit_norm_range),
             printlevel,
             # ROOT.RooFit.Extended(True),
+            ROOT.RooFit.Strategy(1), # strategy 1 failed in some cases (mainly for Signal MC omn relaxed window)
+
         ]
         if isMinos: # adding Minos scan
             fit_args += [
-                ROOT.RooFit.Strategy(1), # strategy 1 failed in some cases (mainly for Signal MC omn relaxed window)
                 ROOT.RooFit.Minos(True), # for MC Signal
             ]
 

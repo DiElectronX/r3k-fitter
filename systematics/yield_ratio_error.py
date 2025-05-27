@@ -78,7 +78,6 @@ def plot_compared_yields(file_list, labels_list, dir_name, output_name):
     # hep.cms.label(data=True, lumi=None, year=2023, com=13.7, ax=ax)
     hep.cms.label(data=True, lumi=None, year=2023, ax=ax)
 
-
     # Save the plot
     plt.savefig(f'{dir_name}/{output_name}.png', format='png', dpi=300, bbox_inches='tight')
     plt.savefig(f'{dir_name}/{output_name}.pdf', format='pdf', bbox_inches='tight')
@@ -107,41 +106,41 @@ def yield_error(mc_ratio_file, data_ratio_file, output_dir, filename):
     print(yield_diff_dict)
     save_yields_err(yield_diff_dict, output_dir, filename)
 
-
 def main():
 
 # #===========================================================================================================
 # Fit Parameterization systematics: Relaxed Window Scan 
 # #===========================================================================================================
     # Load Data and Monte Carlo CSV files
-    data_file_CBGauss = 'fit_parameterization/CBGauss_s1_minos_v2_yield_ratio/data_yield_ratio.csv'
-    mc_file_CBGauss = 'fit_parameterization/CBGauss_s1_minos_v2_yield_ratio/mc_yield_ratio.csv'
+    data_file = 'yield_systematics_wExpCon_minos_v8/data_yield_ratio.csv'
+    mc_file = 'yield_systematics_wExpCon_minos_v8/mc_yield_ratio.csv'
 
-    output_dir = 'fit_parameterization/CBGauss_s1_minos_v2_yield_ratio'
+    output_dir = 'yield_systematics_wExpCon_minos_v8'
 
     # yield_difference between the MC vs Data CBGauss
-    yield_error(mc_file_CBGauss, data_file_CBGauss, output_dir, filename='yield_difference.csv')
+    yield_error(mc_file, data_file, output_dir, filename='yield_difference.csv')
 
     # yield_difference between the Data CBGauss vs Data dcb+dcb
     # NOTE: mc_ratio_file = dcb+dcb baseline and data_ratio_file = CBGauss
-    data_file_dcbdcb = 'jpsi_radiative_tail/vDefault_wPartConFalse_wdcbCon/vDefault_wPartConFalse_wdcbCon_s1_minos/data_yield_ratio.csv'
+    # data_file_dcbdcb = 'jpsi_radiative_tail/vDefault_wPartConFalse_wdcbCon/vDefault_wPartConFalse_wdcbCon_s1_minos/data_yield_ratio.csv'
 
-    yield_error(mc_ratio_file=data_file_dcbdcb,
-                data_ratio_file=mc_file_CBGauss,
-                output_dir=output_dir,
-                filename='yield_difference_CBgauss_vs_dcbdcb.csv')
+    # yield_error(mc_ratio_file=mc_file,
+    #             data_ratio_file=data_file,
+    #             output_dir=output_dir,
+    #             filename='yield_difference.csv')
 
     # plotting
-    data_file_dcbdcb = 'jpsi_radiative_tail/vDefault_wPartConFalse_wdcbCon/vDefault_wPartConFalse_wdcbCon_s1_minos/data_yield_ratio.csv'
-    yield_files = [mc_file_CBGauss,
-                   data_file_CBGauss,
+    # data_file_dcbdcb = 'jpsi_radiative_tail/vDefault_wPartConFalse_wdcbCon/vDefault_wPartConFalse_wdcbCon_s1_minos/data_yield_ratio.csv'
+    
+    yield_files = [mc_file,
+                   data_file,
                 #    data_file_dcbdcb,
                    ]
     labels = ['MC Yield',
-              'Data Yield (CBGauss)',
+              'Data Yield',
             #   'Data Yield (dcb+dcb)',
               ]
-    plot_compared_yields(file_list=yield_files, labels_list=labels, dir_name=output_dir, output_name='compared_yields_Gauss')
+    plot_compared_yields(file_list=yield_files, labels_list=labels, dir_name=output_dir, output_name='compared_yields')
 
 if __name__ == '__main__':
     main()

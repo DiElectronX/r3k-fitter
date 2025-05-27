@@ -335,17 +335,19 @@ def jpsi_fit(dataset_params, output_params, fit_params, args, write=True, get_yi
 
     model_final.add_constraints({
         #'jpsipi_ratio_constraint' : ROOT.RooGaussian('jpsipi_ratio_constraint', 'jpsipi_ratio_constraint', jpsipi_ratio, ROOT.RooFit.RooConst(jpsipi_ratio.getVal()), ROOT.RooFit.RooConst(.05)),
-        # 'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(2.)),
+        
+        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(2.)),
 
-        'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb2_mean_constraint' : ROOT.RooGaussian('dcb2_mean_constraint', 'dcb2_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb2_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb2_sigma_constraint' : ROOT.RooGaussian('dcb2_sigma_constraint', 'dcb2_sigma_constraint', model_final.signal_models['sig_pdf'].dcb2_sigma, ROOT.RooFit.RooConst(template['dcb2_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+        'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.05)), # tight = 0.1, relaxed = 0.5
+        'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.2)), # tight = 0.1, relaxed = 0.2
+        'dcb2_mean_constraint' : ROOT.RooGaussian('dcb2_mean_constraint', 'dcb2_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb2_mean_sig_pdf']), ROOT.RooFit.RooConst(.05)), # tight = 0.1, relaxed = 0.5
+        'dcb2_sigma_constraint' : ROOT.RooGaussian('dcb2_sigma_constraint', 'dcb2_sigma_constraint', model_final.signal_models['sig_pdf'].dcb2_sigma, ROOT.RooFit.RooConst(template['dcb2_sigma_sig_pdf']), ROOT.RooFit.RooConst(.02)), # tight = 0.1, relaxed = 0.2
     })
     if coeffCon:
+        print('Including constraints on dcbdcb+ coeffs')
         model_final.add_constraints({
-            'dcb1_coeff_constraint' : ROOT.RooGaussian('dcb1_coeff_constraint', 'dcb1_coeff_constraint', model_final.signal_models['sig_pdf'].dcb1_coeff, ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']*.05)),
-            'dcb2_coeff_constraint' : ROOT.RooGaussian('dcb2_coeff_constraint', 'dcb2_coeff_constraint', model_final.signal_models['sig_pdf'].dcb2_coeff, ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']*.05)),
+            'dcb1_coeff_constraint' : ROOT.RooGaussian('dcb1_coeff_constraint', 'dcb1_coeff_constraint', model_final.signal_models['sig_pdf'].dcb1_coeff, ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']*.1)), # tight = 0.05, relaxed = 0.1
+            'dcb2_coeff_constraint' : ROOT.RooGaussian('dcb2_coeff_constraint', 'dcb2_coeff_constraint', model_final.signal_models['sig_pdf'].dcb2_coeff, ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']*.1)), # tight = 0.05, relaxed = 0.1
         })
 
     # Fit model to data
@@ -436,16 +438,27 @@ def main(args):
 # #===========================================================================================================
 # Jpsi Radiative Tail Scans across relaxed ll_mass
 # #===========================================================================================================
-    low_q2_window = [2.5, 2.6, 2.7, 2.8, 2.9]
+
+    # low_q2_window = [2.5, 2.6, 2.7, 2.8, 2.9]
+    # low_q2_window = [2.8, 2.9, 2.7, 2.6, 2.5]
+    low_q2_window = [2.9, 2.7, 2.6, 2.5]
+    # low_q2_window = [2.9]
 
     coeffCon_flag = [False, True]
-    isMinos_flag = [False, True]
+    # coeffCon_flag = [True]
+    # isMinos_flag = [False, True]
+    isMinos_flag = [True]
 
     for q2 in low_q2_window:
         fit_params.ll_mass_range[0] = q2
         for minos in isMinos_flag:
-            args.cache = False # template is different depending on the minos_flag
-            template = None
+            # args.cache = False # template is different depending on the minos_flag
+            # template = None
+
+            # refitting with relxaed constraints
+            args.cache = True
+            template = os.path.join(str(q2)+'_wExpCon_v8', output_params.output_dir+'_minos', 'fit_jpsi_template.yml')
+            
             for coeffCon in coeffCon_flag:
                 suffix = ""
                 if coeffCon:
@@ -453,82 +466,25 @@ def main(args):
                 if minos:
                     suffix += '_minos'
 
-                # if q2 == 2.5 and suffix == '':
-                #     continue
-
                 # redirecting path
                 tmp_output_params = copy.deepcopy(output_params)
-                tmp_output_params.output_dir = os.path.join(str(q2), output_params.output_dir + suffix)
+                tmp_output_params.output_dir = os.path.join(str(q2)+'_relaxedCons_wExpCon_v8', output_params.output_dir + suffix)
                 print(tmp_output_params.output_dir)
                 
                 # Fitting
                 jpsi_fit(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=coeffCon, isMinos=minos, template=template)
                 
-                # retreiving template for the next run
-                args.cache = True
-                template = os.path.join(tmp_output_params.output_dir, 'fit_jpsi_template.yml')
+                # # retreiving template for the next run
+                # args.cache = True
+                # template = os.path.join(tmp_output_params.output_dir, 'fit_jpsi_template.yml')
+
 
 # #===========================================================================================================
 # MC Jpsi yield cut and count
 # #===========================================================================================================
     '''
-    # 2.) With analysis BDT cut, run cut and count in MC to get yield_1_mc
-    set_mode(dataset_params, output_params, fit_params, args)
-
-    # FILE_NAME
-    dataset_params.samesign_data_file # same sign ee combinatorial background
-    dataset_params.kstar_jpsi_kaon_file # kstar_kaon
-    dataset_params.kstar_jpsi_pion_file # kstar_pion
-    dataset_params.k0star_jpsi_kaon_file # k0star_kaon
-    dataset_params.k0star_jpsi_pion_file # k0star_pion
-    dataset_params.chic1_jpsi_kaon_file chic1_kaon
-    dataset_params.jpsipi_jpsi_kaon_file jpsipi_kaon
-
     file_name = [dataset_params.jpsi_file, # mc_signal
-                 dataset_params.samesign_data_file, # samesign ee combinatorial (no mc_weight_branch -> trig_wgt)
-                 dataset_params.kstar_jpsi_kaon_file,
-                 dataset_params.kstar_jpsi_pion_file,
-                 dataset_params.k0star_jpsi_kaon_file,
-                 dataset_params.k0star_jpsi_pion_file,
-                 dataset_params.chic1_jpsi_kaon_file,
-                 dataset_params.jpsipi_jpsi_kaon_file 
-                ]
-    treename = dataset_params.tree_name
-    score_cut = None
-    cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
-                                            dataset_params.score_branch,
-                                            fit_params.bdt_score_cut if score_cut is None else score_cut,
-                                            dataset_params.ll_mass_branch,
-                                            fit_params.region['ll_mass_range'][0],
-                                            dataset_params.ll_mass_branch,
-                                            fit_params.region['ll_mass_range'][1],
-                                            )
-    # extract yields ino dicts
-    yields_dict = {}
-    for file in file_name:
-        filename_str = str(file).split('/')[-1]  # Extracts the filename
-        # if (filename_str)
-        mc_decay = filename_str.replace("measurement_", "").replace(".root","").replace("_D0_cut","").replace("_wide_fit", "").replace("_slimmed", "").replace("_corrected", "").replace("_recorrected","")
-        yield_name = f"yield_{mc_decay}"
-        if "same_sign_electrons" in yield_name: # no mc_trig_wgt
-            yield_num = get_MC_yield_cut_and_count(file, tree_name=treename, cut_string=cutstring, weights=None)
-        else:
-            yield_num = get_MC_yield_cut_and_count(file, tree_name=treename, cut_string=cutstring)
-        print(yield_name, yield_num)
-        yields_dict[yield_name] = yield_num
-    # partial background
-    yields_dict['yield_part_bkg_kstar'] = yields_dict['yield_kstar_jpsi_kaon'] + yields_dict['yield_kstar_jpsi_pion'] + \
-                                    yields_dict['yield_k0star_jpsi_kaon'] + yields_dict['yield_k0star_jpsi_pion'] # all kstar
-
-    yields_dict['yield_part_bkg'] = yields_dict['yield_part_bkg_kstar'] + yields_dict['yield_chic1_jpsi_kaon'] # kstar + chic1_kaon
-
-    # save to csv
-    save_yields_err(yields_dict, output_params, 'mc_yields_2.9.csv')
-
-
-    # V2?
-    ### MC Cut and Count ###
-    file_name = [dataset_params.jpsi_file, # mc_signal
+                 dataset_params.samesign_data_file,
                  dataset_params.kstar_jpsi_kaon_file,
                  dataset_params.kstar_jpsi_pion_file,
                  dataset_params.k0star_jpsi_kaon_file,
@@ -539,12 +495,14 @@ def main(args):
     treename = dataset_params.tree_name
     score_cut = None
 
-    low_q2_window = [2.9, 2.8 , 2.7, 2.6, 2.5]
+    # low_q2_window = [2.9, 2.8, 2.7, 2.6, 2.5]
+    # low_q2_window = [2.9, 2.85, 2.8, 2.75, 2.7, 2.6, 2.5]
+    low_q2_window = [2.9]
+
     for q2 in low_q2_window:
         fit_params.ll_mass_range[0] = q2
-        # print(output_params.output_dir)
         tmp_output_params = copy.deepcopy(output_params)
-        tmp_output_params.output_dir = output_params.output_dir+str(q2)
+        tmp_output_params.output_dir = str(q2)
         print(tmp_output_params.output_dir)
 
         cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
@@ -562,85 +520,19 @@ def main(args):
             # if (filename_str)
             mc_decay = filename_str.replace("measurement_", "").replace(".root","").replace("_D0_cut","").replace("_wide_fit", "").replace("_slimmed", "").replace("_corrected", "").replace("_recorrected","")
             yield_name = f"yield_{mc_decay}"
-            yield_num = get_MC_yield_cut_and_count(file, tree_name=treename, cut_string=cutstring)
+
+            if "same_sign_electrons" in yield_name: # no mc_trig_wgt
+                yield_num = get_MC_yield_cut_and_count(file, tree_name=treename, cut_string=cutstring, weights=None)
+            else:
+                yield_num = get_MC_yield_cut_and_count(file, tree_name=treename, cut_string=cutstring)
+
             print(yield_name, yield_num)
             yields_dict[yield_name] = yield_num
         # partial background
         yields_dict['yield_part_bkg'] = yields_dict['yield_kstar_jpsi_kaon'] + yields_dict['yield_kstar_jpsi_pion'] + \
                                         yields_dict['yield_k0star_jpsi_kaon'] + yields_dict['yield_k0star_jpsi_pion'] + yields_dict['yield_chic1_jpsi_kaon']
-
         # save to csv
-        save_yields_err(yields_dict, tmp_output_params, 'mc_yield.csv')
-    '''
-
-
-
-
-# #===========================================================================================================
-# Fit Parameterization systematics: SIGNAL dcb+dcb --> cbcb, cbgauss, gausscb + COMBINATORIAL exp --> 2nd/4th polynomial 
-# #===========================================================================================================
-    # tmp_output_params = copy.deepcopy(output_params)
-    # tmp_output_params.output_dir = 'dcbdcb_sig/fitter_outputs/'
-    # jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=False)
-
-    # tmp_output_params = copy.deepcopy(output_params)
-    # tmp_output_params.output_dir = 'dcbdcb_sig/fitter_outputs_wCoeffCon/'
-    # jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=True, isMinos=False)
-
-    # tmp_output_params = copy.deepcopy(output_params)
-    # tmp_output_params.output_dir = 'gausscb_sig/fitter_outputs/'
-    # jpsi_fit_cbgauss_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=False)
-    
-    # tmp_output_params = copy.deepcopy(output_params)
-    # tmp_output_params.output_dir = 'cbcb_sig/fitter_outputs/'
-    # jpsi_fit_cbcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=False)
-
-    # tmp_output_params = copy.deepcopy(output_params)
-    # tmp_output_params.output_dir = 'poly_2nd_comb/fitter_outputs/'
-    # jpsi_fit_poly_comb_bkg(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=False)
-
-# #===========================================================================================================
-# Fit Parameterization systematics: same shape script but wCoeff/noCoeff minos/noMinos runs
-# #===========================================================================================================
-    '''
-    dir_path = output_params.output_dir
-
-    print(dir_path)
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = dir_path+'fitter_outputs/'
-    jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=False)
-    print(dir_path)
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = dir_path+'fitter_outputs_wCoeffCon/'
-    jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=True, isMinos=False)
-    print(dir_path)
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = dir_path+'fitter_outputs_minos/'
-    jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=True)
-    print(dir_path)
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = dir_path+'fitter_outputs_wCoeffCon_minos/'
-    jpsi_fit_dcbdcb_sig(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=True, isMinos=True)
-    '''
-# #===========================================================================================================
-# Fit Parameterization systematics: partial reconstructed background --> up/down sampled for k(0)star --> pion/kaon
-# #===========================================================================================================
-    '''
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = 'partial_bkg/kaon_pion_switched/fitter_outputs'
-    jpsi_fit_kde_partial_bkg(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=False)
-
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = 'partial_bkg/kaon_pion_switched/fitter_outputs_wCoeffCon'
-    jpsi_fit_kde_partial_bkg(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=True, isMinos=False)
-
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = 'partial_bkg/kaon_pion_switched/fitter_outputs_minos'
-    jpsi_fit_kde_partial_bkg(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=False, isMinos=True)
-
-    tmp_output_params = copy.deepcopy(output_params)
-    tmp_output_params.output_dir = 'partial_bkg/kaon_pion_switched/fitter_outputs_wCoeffCon_minos'
-    jpsi_fit_kde_partial_bkg(dataset_params, tmp_output_params, fit_params, args, get_yields=True, coeffCon=True, isMinos=True)
+        save_yields_err(yields_dict, tmp_output_params, f'mc_yield.csv')
     '''
 
 if __name__ == '__main__':
