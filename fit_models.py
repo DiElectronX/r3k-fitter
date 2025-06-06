@@ -336,6 +336,7 @@ class FitModel:
                  file_formats=['pdf', 'png'], 
                  fit_result=None, 
                  legend=False, 
+                 stat_text_pos='right',
                  extra_text=None, 
                  file_label=None,
                  data_error=ROOT.RooAbsData.Poisson):
@@ -464,9 +465,10 @@ class FitModel:
 
         if legend:
             leg.Draw()
-
+        
+        stat_text_pos_x = .48 if ('middle' in stat_text_pos) else .63
         if fit_result is not None:
-            chi2_text = ROOT.TLatex(0.48, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,2)))
+            chi2_text = ROOT.TLatex(stat_text_pos_x, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,2)))
             chi2_text.SetTextSize(0.06)
             chi2_text.SetNDC(ROOT.kTRUE)
             chi2_text.Draw()
@@ -479,7 +481,7 @@ class FitModel:
             '''
 
         if extra_text:
-            text = ROOT.TLatex(0.48, 0.7, extra_text)
+            text = ROOT.TLatex(stat_text_pos_x, 0.7, extra_text)
             text.SetTextSize(0.06)
             text.SetNDC(ROOT.kTRUE)
             text.Draw()

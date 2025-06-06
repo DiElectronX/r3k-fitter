@@ -27,7 +27,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False)
+        _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='final_wgt')
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_rare, 'channel_label' : fit_params.channel_label})
@@ -86,7 +86,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 3 - J/Psi Leakage Template\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    _, dataset_jpsi = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.jpsi_file)
+    _, dataset_jpsi = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.jpsi_file, weight_branch_name='final_wgt')
 
     # Build Roofit model for exponential background
     model_jpsi_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsi, 'channel_label' : fit_params.channel_label})
@@ -116,9 +116,9 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 4 - KStar Partial Template\n{}'.format(50*'~'))
         
     # Import ROOT file dataset
-    _, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.kstar_pion_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch,isData=False, set_file=dataset_params.k0star_kaon_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch,isData=False, set_file=dataset_params.k0star_pion_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.kstar_pion_file, weight_branch_name='final_wgt')
+    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch,isData=False, set_file=dataset_params.k0star_kaon_file, weight_branch_name='final_wgt')
+    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch,isData=False, set_file=dataset_params.k0star_pion_file, weight_branch_name='final_wgt')
     dataset_kstar_comb = dataset_kstar_pion.Clone('dataset_kstar_comb'+fit_params.channel_label)
     dataset_kstar_comb.append(dataset_k0star_kaon)
     dataset_kstar_comb.append(dataset_k0star_pion)
@@ -253,7 +253,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
 
         # Generate expected signal from MC shape and jpsi-extrapolated yield
         if args.cache:
-            _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False)
+            _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='final_wgt')
             model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_rare, 'channel_label' : fit_params.channel_label})
             model_sig_template.add_signal_model('sig_pdf', 'dcb', template, let_float=False)
             model_sig_template.fit_model = model_sig_template.sig_pdf
@@ -460,7 +460,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False)
+        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='sf_combined_mean')
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_mc, 'channel_label' : fit_params.channel_label})
@@ -521,12 +521,12 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 3 - Partial Template \n{}'.format(50*'~'))
     
     # Look at partial shape files
-    tmp_b_mass_branch, dataset_kstar_kaon = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.kstar_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_kstar_pion   = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.kstar_jpsi_pion_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_k0star_kaon  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_k0star_pion  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_jpsi_pion_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_chic1_kaon   = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.chic1_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
-    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.jpsipi_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
+    tmp_b_mass_branch, dataset_kstar_kaon = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.kstar_jpsi_kaon_file, weight_branch_name='final_wgt')
+    _, dataset_kstar_pion   = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.kstar_jpsi_pion_file, weight_branch_name='final_wgt')
+    _, dataset_k0star_kaon  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_jpsi_kaon_file, weight_branch_name='final_wgt')
+    _, dataset_k0star_pion  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_jpsi_pion_file, weight_branch_name='final_wgt')
+    _, dataset_chic1_kaon   = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.chic1_jpsi_kaon_file, weight_branch_name='final_wgt')
+    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.jpsipi_jpsi_kaon_file, weight_branch_name='final_wgt')
     dataset_kstar_comb = dataset_kstar_kaon.Clone('dataset_kstar_comb'+fit_params.channel_label)
     dataset_kstar_comb.append(dataset_kstar_pion)
     dataset_kstar_comb.append(dataset_k0star_kaon)
@@ -597,7 +597,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     if args.verbose:
         print('\nStarting Fit 4 - JpsiPi Partial Template \n{}'.format(50*'~'))
     
-    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.jpsipi_jpsi_kaon_file, weight_branch_name='trig_wgt_reweighted')
+    _, dataset_jpsipi_pion  = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.jpsipi_jpsi_kaon_file, weight_branch_name='final_wgt')
     model_jpsipi_pion_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsipi_pion, 'channel_label' : fit_params.channel_label})
     model_jpsipi_pion_template.add_background_model('part_bkg_pdf_jpsipi_pion', 'dcb', fit_params.fit_defaults, let_float=True)
     model_jpsipi_pion_template.fit_model = model_jpsipi_pion_template.part_bkg_pdf_jpsipi_pion
@@ -773,7 +773,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False)
+        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='sf_combined_mean')
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_mc, 'channel_label' : fit_params.channel_label})
@@ -834,9 +834,9 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         print('\nStarting Fit 3 - KStar Partial Template\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    tmp_b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.kstar_psi2s_pion_file)
-    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_psi2s_kaon_file)#, extra_weight=.1)
-    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_psi2s_pion_file)#, extra_weight=.1)
+    tmp_b_mass_branch, dataset_kstar_pion = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.kstar_psi2s_pion_file, weight_branch_name='final_wgt')
+    _, dataset_k0star_kaon = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_psi2s_kaon_file, weight_branch_name='final_wgt')#, extra_weight=.1)
+    _, dataset_k0star_pion = prepare_inputs(dataset_params, fit_params, isData=False, b_mass_branch=b_mass_branch, set_file=dataset_params.k0star_psi2s_pion_file, weight_branch_name='final_wgt')#, extra_weight=.1)
     dataset_kstar_comb = dataset_kstar_pion.Clone('dataset_kstar_comb'+fit_params.channel_label)
     dataset_kstar_comb.append(dataset_k0star_kaon)
     dataset_kstar_comb.append(dataset_k0star_pion)

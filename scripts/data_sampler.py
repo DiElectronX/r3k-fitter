@@ -42,7 +42,7 @@ def main(args):
     else:
         sf = args.value / event_sum
     
-    rdf_sampled = rdf.Define('trig_wgt_reweighted',f'trig_wgt*{sf}')
+    rdf_sampled = rdf.Define('final_wgt',f'trig_wgt*{sf}')
     rdf_sampled.Snapshot('mytree', str(new_output_path))
 
 if __name__ == '__main__':
@@ -74,8 +74,8 @@ if __name__ == '__main__':
             dataset_params.score_branch, fit_params.bdt_score_cut,
             dataset_params.ll_mass_branch, fit_params.ll_mass_range[0],
             dataset_params.ll_mass_branch, fit_params.ll_mass_range[1],
-            dataset_params.b_mass_branch, fit_params.full_mass_range[0],
-            dataset_params.b_mass_branch, fit_params.full_mass_range[1],
+            dataset_params.b_mass_branch, fit_params.fit_range[0],
+            dataset_params.b_mass_branch, fit_params.fit_range[1],
         ))
 
     main(args)

@@ -3,5 +3,9 @@
 /**/*.pdf
 /**/*.pyc
 /**/*.out
+/**/*.gif
+/**/*.zip
+/**/*.pkl
+/**/*DS_Store*
 /**/.__afs*
 .history/
