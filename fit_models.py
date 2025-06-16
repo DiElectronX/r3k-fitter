@@ -97,6 +97,7 @@ class PDFDict():
 
         if shape=='dcb+dcb':
             shape_dict = {
+                'dcb_coeff_ratio'  : 'DCB+DCB: Ratio of DCB components', 
                 'dcb1_coeff'  : 'DCB+DCB: DCB1 Coefficient', 
                 'dcb1_mean'   : 'DCB+DCB: Mean of DCB1 component', 
                 'dcb1_sigma'  : 'DCB+DCB: Width of DCB1 component', 
@@ -114,12 +115,21 @@ class PDFDict():
             }
 
             for par, desc in shape_dict.items():
+
                 name_fmt = par+'_'+label if label else par
                 setattr(self, par, ROOT.RooRealVar(
                     name_fmt+self.channel_label,
                     desc,
                     *parameters[name_fmt])
                 )
+            
+                if 'dcb_coeff_ratio' in par:
+                    name_fmt_comp = par+'_comp_'+label if label else par+'_comp'
+                    setattr(self, 'dcb_coeff_ratio_comp', ROOT.RooFormulaVar(
+                        name_fmt_comp+self.channel_label,
+                        '1-{}'.format(getattr(self,par).GetName()),
+                        ROOT.RooArgList(getattr(self,par)))
+                    )
 
             self.dcb1_pdf = ROOT.RooTwoSidedCBShape(
                 'dcb1_pdf'+self.channel_label,
@@ -137,7 +147,7 @@ class PDFDict():
                 self.name+self.channel_label,
                 'DCB+DCB',
                  ROOT.RooArgList(self.dcb1_pdf, self.dcb2_pdf),
-                 ROOT.RooArgList(self.dcb1_coeff, self.dcb2_coeff)
+                 ROOT.RooArgList(self.dcb_coeff_ratio, self.dcb_coeff_ratio_comp)
             )
 
         if shape=='cb+cb':
@@ -303,7 +313,7 @@ class FitModel:
         self.constraints.update(constraint_dict)
 
 
-    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1)):
+    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), param_err_tolerance=1E-5, use_minos=False):
         fit_args = [
             dataset,
             ROOT.RooFit.Save(),
@@ -311,6 +321,7 @@ class FitModel:
             #ROOT.RooFit.NormRange(fit_norm_range),
             printlevel,
             # ROOT.RooFit.Extended(True),
+            ROOT.RooFit.Minos(True if use_minos else False),
         ]
 
         if self.constraints:
@@ -322,6 +333,17 @@ class FitModel:
             # fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
 
         self.fit_result = self.fit_model.fitTo(*fit_args)
+
+        for param in self.fit_result.floatParsFinal():
+            val = param.getVal()
+            min_val = param.getMin()
+            max_val = param.getMax()
+            name = param.GetName()
+
+            if abs(val - min_val) < param_err_tolerance:
+                print(f'⚠️  WARNING: Parameter "{name}" is at its lower limit ({val:.5f} ≈ {min_val:.5f})')
+            elif abs(val - max_val) < param_err_tolerance:
+                print(f'⚠️  WARNING: Parameter "{name}" is at its upper limit ({val:.5f} ≈ {max_val:.5f})')
 
 
     def plot_fit(self, 

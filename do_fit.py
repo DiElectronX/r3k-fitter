@@ -27,7 +27,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='final_wgt')
+        _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='sf_combined_mean')
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_rare, 'channel_label' : fit_params.channel_label})
@@ -35,7 +35,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         model_sig_template.fit_model = model_sig_template.sig_pdf
 
         # Fit model to data
-        model_sig_template.fit(dataset_rare, printlevel=printlevel)
+        model_sig_template.fit(dataset_rare, use_minos=True if args.minos else False, printlevel=printlevel)
         params = model_sig_template.fit_result.floatParsFinal()
 
         # Plot fit result
@@ -64,7 +64,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         model_comb_template.fit_model = model_comb_template.comb_bkg_pdf
 
         # Fit model to data
-        model_comb_template.fit(dataset_samesign_data, printlevel=printlevel, fit_range='semilow', fit_norm_range='semilow')
+        model_comb_template.fit(dataset_samesign_data, use_minos=True if args.minos else False, printlevel=printlevel, fit_range='semilow', fit_norm_range='semilow')
         params = model_comb_template.fit_result.floatParsFinal()
 
         # Plot fit result
@@ -86,7 +86,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 3 - J/Psi Leakage Template\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    _, dataset_jpsi = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.jpsi_file, weight_branch_name='final_wgt')
+    _, dataset_jpsi = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.jpsi_file, weight_branch_name='sf_combined_mean')
 
     # Build Roofit model for exponential background
     model_jpsi_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsi, 'channel_label' : fit_params.channel_label})
@@ -94,7 +94,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     model_jpsi_template.fit_model = model_jpsi_template.jpsi_bkg_pdf
 
     # Fit model to data
-    model_jpsi_template.fit(dataset_jpsi, fit_range='low', fit_norm_range='low', printlevel=printlevel)
+    model_jpsi_template.fit(dataset_jpsi, use_minos=True if args.minos else False, fit_range='low', fit_norm_range='low', printlevel=printlevel)
     params = model_jpsi_template.fit_result.floatParsFinal()
 
     # Plot fit result
@@ -172,10 +172,10 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     # Add template for final fit
     if args.verbose:
         print('\nStarting Fit 5 - Final Model\n{}'.format(50*'~'))
-    
+
     comb_bkg_norm = 170
     part_bkg_norm = 23
-    jpsi_bkg_norm = 200
+    jpsi_bkg_norm = 62378*0.0003865566637
 
     if args.cache:
         # Load fit shape templates from file
@@ -185,7 +185,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
     # Import ROOT file dataset
     _, dataset_data = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=True)
 
-    # Use toys to produce expected signal 
+    # Use toys to produce expected signal
     if toy_fit:
         # Fit background-only model to data sidebands
         bkg_only_model = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_data, 'channel_label' : fit_params.channel_label})
@@ -211,7 +211,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         )
 
         comb_bkg_coeff.setConstant(False)
-        jpsi_bkg_coeff.setConstant(False)
+        # jpsi_bkg_coeff.setConstant(False)
         part_bkg_coeff.setConstant(False)
         bkg_only_model.background_models['comb_bkg_pdf'].exp_slope.setConstant(False)
 
@@ -220,7 +220,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             # 'exp_slope_comb_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_comb_bkg_pdf_constraint', 'exp_slope_comb_bkg_pdf_constraint', bkg_only_model.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(5)),
         })
 
-        bkg_only_model.fit(dataset_data, fit_range='sb1,sb2', fit_norm_range='sb1,sb2', printlevel=printlevel)
+        bkg_only_model.fit(dataset_data, use_minos=True if args.minos else False, fit_range='sb1,sb2', fit_norm_range='sb1,sb2', printlevel=printlevel)
         params = bkg_only_model.fit_result.floatParsFinal()
         template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args, update_dict=template, lock_file=param_file_lock)
         
@@ -337,12 +337,15 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Add gaussian contraints to fit parameters
     part_bkg_coeff.setConstant(False)
+    comb_bkg_coeff.setConstant(False)
+    # jpsi_bkg_coeff.setConstant(False)
     model_final.background_models['comb_bkg_pdf'].exp_slope.setConstant(False)
 
     if toy_fit:
-        model_final.signal_models['sig_pdf'].dcb_mean.setConstant(False)
-        model_final.signal_models['sig_pdf'].dcb_sigma.setConstant(False)
-        #jpsi_ratio = ROOT.RooFormulaVar('jpsi_ratio', 'Ratio of JPsi leakage', '@0/@1', ROOT.RooArgList(sig_coeff, jpsi_bkg_coeff))
+        model_final.signal_models['sig_pdf'].sig_coeff.setConstant(False)
+        # model_final.signal_models['sig_pdf'].dcb_mean.setConstant(False)
+        # model_final.signal_models['sig_pdf'].dcb_sigma.setConstant(False)
+        # jpsi_ratio = ROOT.RooFormulaVar('jpsi_ratio', 'Ratio of JPsi leakage', '0.2413793103*@0', ROOT.RooArgList(sig_coeff))
     else:
         pass
         # jpsi_ratio = ROOT.RooFormulaVar('jpsi_ratio', 'Ratio of JPsi leakage', '@0/@1', ROOT.RooArgList(part_bkg_coeff, jpsi_bkg_coeff))
@@ -350,21 +353,21 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Add gaussian contraints to fit parameters
     model_final.constraints.update({
-        'part_bkg_coeff_constraint' : ROOT.RooGaussian('part_bkg_coeff_constraint', 'part_bkg_coeff_constraint', part_bkg_coeff, ROOT.RooFit.RooConst(part_bkg_coeff.getVal()), ROOT.RooFit.RooConst(part_bkg_coeff.getVal()*.2)),
+        # 'part_bkg_coeff_constraint' : ROOT.RooGaussian('part_bkg_coeff_constraint', 'part_bkg_coeff_constraint', part_bkg_coeff, ROOT.RooFit.RooConst(part_bkg_coeff.getVal()), ROOT.RooFit.RooConst(part_bkg_coeff.getVal()*0.24)),
         #'exp_slope_comb_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_comb_bkg_pdf_constraint', 'exp_slope_comb_bkg_pdf_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(5)),
         # 'exp_slope_jpsi_bkg_pdf_constraint' : ROOT.RooGaussian('exp_slope_jpsi_bkg_pdf_constraint', 'exp_slope_jpsi_bkg_pdf_constraint', model_final.background_models['jpsi_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_jpsi_bkg_pdf']), ROOT.RooFit.RooConst(0.5)),
     })
     if toy_fit:
         model_final.constraints.update({
-            'dcb_mean_constraint' : ROOT.RooGaussian('dcb_mean_constraint', 'dcb_mean_constraint', model_final.signal_models['sig_pdf'].dcb_mean, ROOT.RooFit.RooConst(template['dcb_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-            'dcb_sigma_constraint' : ROOT.RooGaussian('dcb_sigma_constraint', 'dcb_sigma_constraint', model_final.signal_models['sig_pdf'].dcb_sigma, ROOT.RooFit.RooConst(template['dcb_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+            # 'dcb_mean_constraint' : ROOT.RooGaussian('dcb_mean_constraint', 'dcb_mean_constraint', model_final.signal_models['sig_pdf'].dcb_mean, ROOT.RooFit.RooConst(template['dcb_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+            # 'dcb_sigma_constraint' : ROOT.RooGaussian('dcb_sigma_constraint', 'dcb_sigma_constraint', model_final.signal_models['sig_pdf'].dcb_sigma, ROOT.RooFit.RooConst(template['dcb_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
             # 'jpsi_ratio_constraint' : ROOT.RooGaussian('jpsi_ratio_constraint', 'jpsi_ratio_constraint', jpsi_ratio, ROOT.RooFit.RooConst(jpsi_ratio.getVal()), ROOT.RooFit.RooConst(.05)),
         })
 
     # Fit model to data
     fit_range = 'full' #if toy_fit else 'sb1,sb2'
     fit_norm_range = 'full' #if toy_fit else 'sb1,sb2'
-    model_final.fit(dataset_data, fit_range=fit_range, fit_norm_range=fit_norm_range, printlevel=printlevel)
+    model_final.fit(dataset_data, use_minos=True if args.minos else False, fit_range=fit_range, fit_norm_range=fit_norm_range, printlevel=printlevel)
     params = model_final.fit_result.floatParsFinal()
     template = save_params(params, os.path.join(output_params.output_dir,'fit_'+args.mode+'_template.yml'), fit_params, args, update_dict=template, lock_file=param_file_lock)
 
@@ -388,6 +391,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         bins=35,
         legend=True,
         yrange=[0,80],
+        stat_text_pos='middle',
         extra_text=yield_text,
     )
 
@@ -468,7 +472,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         model_sig_template.fit_model = model_sig_template.sig_pdf
 
         # Fit model to data
-        model_sig_template.fit(dataset_mc, printlevel=printlevel)
+        model_sig_template.fit(dataset_mc, use_minos=True if args.minos else False, printlevel=printlevel)
         params = model_sig_template.fit_result.floatParsFinal()
 
         # Plot fit result
@@ -501,7 +505,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
         model_comb_template.fit_model = model_comb_template.comb_bkg_pdf
 
         # Fit model to data
-        model_comb_template.fit(dataset_data, printlevel=printlevel)
+        model_comb_template.fit(dataset_data, use_minos=True if args.minos else False, printlevel=printlevel)
         params = model_comb_template.fit_result.floatParsFinal()
 
         # Plot fit result
@@ -603,7 +607,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     model_jpsipi_pion_template.fit_model = model_jpsipi_pion_template.part_bkg_pdf_jpsipi_pion
     
     # Fit model to data
-    model_jpsipi_pion_template.fit(dataset_jpsipi_pion, printlevel=printlevel)
+    model_jpsipi_pion_template.fit(dataset_jpsipi_pion, use_minos=True if args.minos else False, printlevel=printlevel)
     params = model_jpsipi_pion_template.fit_result.floatParsFinal()
 
     # Plot fit result
@@ -641,7 +645,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     comb_bkg_coeff = ROOT.RooRealVar('comb_bkg_coeff'+fit_params.channel_label, 'Combinatorial Background Coefficient', 2000, 0, dataset_data.numEntries())
     part_bkg_coeff  = ROOT.RooRealVar('part_bkg_coeff'+fit_params.channel_label, 'Part. Bkg. PDF Coeff.', 3000, 0, dataset_data.numEntries())
     #part_bkg_jpsipi_pion_coeff = ROOT.RooRealVar('part_bkg_jpsipi_pion_coeff'+fit_params.channel_label, 'Part. Bkg. PDF Coeff.', 2280, 0, dataset_data.numEntries())
-    part_bkg_jpsipi_pion_coeff = ROOT.RooFormulaVar('part_bkg_jpsipi_pion_coeff', 'Part. Bkg. PDF Coeff.', '0.038*@0', ROOT.RooArgList(sig_coeff))
+    part_bkg_jpsipi_pion_coeff = ROOT.RooFormulaVar('part_bkg_jpsipi_pion_coeff', 'Part. Bkg. PDF Coeff.', '0.0465*@0', ROOT.RooArgList(sig_coeff))
 
     model_final.fit_model = ROOT.RooAddPdf(
         'pdf_sum_final',
@@ -662,29 +666,31 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Add gaussian contraints to fit parameters
     sig_coeff.setConstant(False)
+    comb_bkg_coeff.setConstant(False)
+    part_bkg_coeff.setConstant(False)
     model_final.signal_models['sig_pdf'].dcb1_mean.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb2_mean.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb2_mean.setConstant(False)
     model_final.signal_models['sig_pdf'].dcb1_sigma.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb2_sigma.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb1_coeff.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb2_coeff.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb2_sigma.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb1_coeff.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb2_coeff.setConstant(False)
+    model_final.signal_models['sig_pdf'].dcb_coeff_ratio.setConstant(False)
     model_final.background_models['comb_bkg_pdf'].exp_slope.setConstant(False)
-    #part_bkg_jpsipi_pion_coeff.setConstant(False)
-    #jpsipi_ratio = ROOT.RooFormulaVar('jpsipi_ratio', 'Ratio of B->JpsiPi decay channel', '@0/@1', ROOT.RooArgList(sig_coeff, part_bkg_jpsipi_pion_coeff))
+    # part_bkg_jpsipi_pion_coeff.setConstant(False)
+    jpsipi_ratio = ROOT.RooFormulaVar('jpsipi_ratio', 'Ratio of B->JpsiPi decay channel', '@0/@1', ROOT.RooArgList(sig_coeff, part_bkg_jpsipi_pion_coeff))
 
     model_final.add_constraints({
-        #'jpsipi_ratio_constraint' : ROOT.RooGaussian('jpsipi_ratio_constraint', 'jpsipi_ratio_constraint', jpsipi_ratio, ROOT.RooFit.RooConst(jpsipi_ratio.getVal()), ROOT.RooFit.RooConst(.05)),
-        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(2.)),
-        'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        #'dcb1_coeff_constraint' : ROOT.RooGaussian('dcb1_coeff_constraint', 'dcb1_coeff_constraint', model_final.signal_models['sig_pdf'].dcb1_coeff, ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']*.05)),
-        'dcb2_mean_constraint' : ROOT.RooGaussian('dcb2_mean_constraint', 'dcb2_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb2_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb2_sigma_constraint' : ROOT.RooGaussian('dcb2_sigma_constraint', 'dcb2_sigma_constraint', model_final.signal_models['sig_pdf'].dcb2_sigma, ROOT.RooFit.RooConst(template['dcb2_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        #'dcb2_coeff_constraint' : ROOT.RooGaussian('dcb2_coeff_constraint', 'dcb2_coeff_constraint', model_final.signal_models['sig_pdf'].dcb2_coeff, ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']*.05)),
+        # 'jpsipi_ratio_constraint' : ROOT.RooGaussian('jpsipi_ratio_constraint', 'jpsipi_ratio_constraint', jpsipi_ratio, ROOT.RooFit.RooConst(jpsipi_ratio.getVal()), ROOT.RooFit.RooConst(.05)),
+        # 'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(2.)),
+         # 'dcb_coeff_ratio_constraint' : ROOT.RooGaussian('dcb_coeff_ratio_constraint', 'dcb_coeff_ratio_constraint', model_final.signal_models['sig_pdf'].dcb_coeff_ratio, ROOT.RooFit.RooConst(template['dcb_coeff_ratio']), ROOT.RooFit.RooConst(.05*template['dcb_coeff_ratio'])),
+         # 'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.02*template['dcb1_mean_sig_pdf'])),
+         # 'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.02*template['dcb1_sigma_sig_pdf'])),
+         # 'dcb2_mean_constraint' : ROOT.RooGaussian('dcb2_mean_constraint', 'dcb2_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb2_mean_sig_pdf']), ROOT.RooFit.RooConst(.02*template['dcb2_mean_sig_pdf'])),
+         # 'dcb2_sigma_constraint' : ROOT.RooGaussian('dcb2_sigma_constraint', 'dcb2_sigma_constraint', model_final.signal_models['sig_pdf'].dcb2_sigma, ROOT.RooFit.RooConst(template['dcb2_sigma_sig_pdf']), ROOT.RooFit.RooConst(.02*template['dcb2_sigma_sig_pdf'])),
     })
 
     # Fit model to data
-    model_final.fit(dataset_data, printlevel=printlevel)
+    model_final.fit(dataset_data, use_minos=True if args.minos else False, printlevel=printlevel)
     params = model_final.fit_result.floatParsFinal()
 
     # Plot fit result
@@ -729,26 +735,16 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
 
     # Use function to grab yields
     yields = {
-        'yield_sig' : round(sig_coeff.getValV(),2),
-        'yield_sig_err' : round(sig_coeff.getError(),2),
-        'yield_comb_bkg' : round(comb_bkg_coeff.getValV(),2),
-        'yield_comb_bkg_err' : round(comb_bkg_coeff.getError(),2),
-        'yield_part_bkg' : round(part_bkg_coeff.getValV(),2),
-        'yield_part_bkg_err' : round(part_bkg_coeff.getError(),2),
-        'yield_part_bkg_jpsipi_pion' : round(part_bkg_jpsipi_pion_coeff.getValV(),2),
-        # 'yield_part_bkg_jpsipi_pion_err' : round(part_bkg_jpsipi_pion_coeff.getError(),2), 
-        'yield_part_bkg_kstar' : round(part_bkg_coeff.getValV() * kstar_yield_frac,2),
-        'yield_part_bkg_kstar_err' : round(part_bkg_coeff.getError(),2),
-        'yield_part_bkg_kstar_kaon' : round(part_bkg_coeff.getValV() * kstar_kaon_yield_frac,2),
-        'yield_part_bkg_kstar_kaon_err' : round(part_bkg_coeff.getError() * kstar_kaon_yield_frac,2),
-        'yield_part_bkg_kstar_pion' : round(part_bkg_coeff.getValV() * kstar_pion_yield_frac,2),
-        'yield_part_bkg_kstar_pion_err' : round(part_bkg_coeff.getError() * kstar_pion_yield_frac,2),
-        'yield_part_bkg_k0star_kaon' : round(part_bkg_coeff.getValV() * k0star_kaon_yield_frac,2),
-        'yield_part_bkg_k0star_kaon_err' : round(part_bkg_coeff.getError() * k0star_kaon_yield_frac,2),
-        'yield_part_bkg_k0star_pion' : round(part_bkg_coeff.getValV() * k0star_pion_yield_frac,2),
-        'yield_part_bkg_k0star_pion_err' : round(part_bkg_coeff.getError() * k0star_pion_yield_frac,2),
-        'yield_part_bkg_chic1_kaon' : round(part_bkg_coeff.getValV() * chic1_kaon_yield_frac,2),
-        'yield_part_bkg_chic1_kaon_err' : round(part_bkg_coeff.getError() * chic1_kaon_yield_frac,2),
+        'yield_sig' : (round(sig_coeff.getValV(),2), round(sig_coeff.getError(),2)),
+        'yield_comb_bkg' : (round(comb_bkg_coeff.getValV(),2), round(comb_bkg_coeff.getError(),2)),
+        'yield_part_bkg' : (round(part_bkg_coeff.getValV(),2), round(part_bkg_coeff.getError(),2)),
+        'yield_part_bkg_jpsipi_pion' : (round(part_bkg_jpsipi_pion_coeff.getValV(),2), 0),  #round(part_bkg_jpsipi_pion_coeff.getError(),2), 
+        'yield_part_bkg_kstar' : (round(part_bkg_coeff.getValV() * kstar_yield_frac,2), round(part_bkg_coeff.getError(),2)),
+        'yield_part_bkg_kstar_kaon' : (round(part_bkg_coeff.getValV() * kstar_kaon_yield_frac,2), round(part_bkg_coeff.getError() * kstar_kaon_yield_frac,2)),
+        'yield_part_bkg_kstar_pion' : (round(part_bkg_coeff.getValV() * kstar_pion_yield_frac,2), round(part_bkg_coeff.getError() * kstar_pion_yield_frac,2)),
+        'yield_part_bkg_k0star_kaon' : (round(part_bkg_coeff.getValV() * k0star_kaon_yield_frac,2), round(part_bkg_coeff.getError() * k0star_kaon_yield_frac,2)),
+        'yield_part_bkg_k0star_pion' : (round(part_bkg_coeff.getValV() * k0star_pion_yield_frac,2), round(part_bkg_coeff.getError() * k0star_pion_yield_frac,2)),
+        'yield_part_bkg_chic1_kaon' : (round(part_bkg_coeff.getValV() * chic1_kaon_yield_frac,2), round(part_bkg_coeff.getError() * chic1_kaon_yield_frac,2)),
     }
 
     if get_yields:
@@ -781,7 +777,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         model_sig_template.fit_model = model_sig_template.sig_pdf
 
         # Fit model to data
-        model_sig_template.fit(dataset_mc, printlevel=printlevel)
+        model_sig_template.fit(dataset_mc, use_minos=True if args.minos else False, printlevel=printlevel)
         params = model_sig_template.fit_result.floatParsFinal()
 
         # Plot fit result
@@ -814,7 +810,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
         model_comb_template.fit_model = model_comb_template.comb_bkg_pdf
 
         # Fit model to data
-        model_comb_template.fit(dataset_data, printlevel=printlevel)
+        model_comb_template.fit(dataset_data, use_minos=True if args.minos else False, printlevel=printlevel)
         params = model_comb_template.fit_result.floatParsFinal()
 
         # Plot fit result
@@ -934,27 +930,29 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     )
 
     # Add gaussian contraints to fit parameters
+    sig_coeff.setConstant(False)
     part_bkg_coeff.setConstant(False)
+    comb_bkg_coeff.setConstant(False)
     model_final.background_models['comb_bkg_pdf'].exp_slope.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb1_mean.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb2_mean.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb1_sigma.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb2_sigma.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb1_coeff.setConstant(False)
-    model_final.signal_models['sig_pdf'].dcb2_coeff.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb1_mean.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb2_mean.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb1_sigma.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb2_sigma.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb1_coeff.setConstant(False)
+    # model_final.signal_models['sig_pdf'].dcb2_coeff.setConstant(False)
 
     model_final.add_constraints({
-        'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(10)),
-        'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+        # 'exp_slope_constraint' : ROOT.RooGaussian('exp_slope_constraint', 'exp_slope_constraint', model_final.background_models['comb_bkg_pdf'].exp_slope, ROOT.RooFit.RooConst(template['exp_slope_comb_bkg_pdf']), ROOT.RooFit.RooConst(10)),
+        # 'dcb1_mean_constraint' : ROOT.RooGaussian('dcb1_mean_constraint', 'dcb1_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb1_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+        # 'dcb1_sigma_constraint' : ROOT.RooGaussian('dcb1_sigma_constraint', 'dcb1_sigma_constraint', model_final.signal_models['sig_pdf'].dcb1_sigma, ROOT.RooFit.RooConst(template['dcb1_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
         # 'dcb1_coeff_constraint' : ROOT.RooGaussian('dcb1_coeff_constraint', 'dcb1_coeff_constraint', model_final.signal_models['sig_pdf'].dcb1_coeff, ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb1_coeff_sig_pdf']*.05)),
-        'dcb2_mean_constraint' : ROOT.RooGaussian('dcb2_mean_constraint', 'dcb2_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb2_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
-        'dcb2_sigma_constraint' : ROOT.RooGaussian('dcb2_sigma_constraint', 'dcb2_sigma_constraint', model_final.signal_models['sig_pdf'].dcb2_sigma, ROOT.RooFit.RooConst(template['dcb2_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+        # 'dcb2_mean_constraint' : ROOT.RooGaussian('dcb2_mean_constraint', 'dcb2_mean_constraint', model_final.signal_models['sig_pdf'].dcb1_mean, ROOT.RooFit.RooConst(template['dcb2_mean_sig_pdf']), ROOT.RooFit.RooConst(.01)),
+        # 'dcb2_sigma_constraint' : ROOT.RooGaussian('dcb2_sigma_constraint', 'dcb2_sigma_constraint', model_final.signal_models['sig_pdf'].dcb2_sigma, ROOT.RooFit.RooConst(template['dcb2_sigma_sig_pdf']), ROOT.RooFit.RooConst(.01)),
         # 'dcb2_coeff_constraint' : ROOT.RooGaussian('dcb2_coeff_constraint', 'dcb2_coeff_constraint', model_final.signal_models['sig_pdf'].dcb2_coeff, ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']), ROOT.RooFit.RooConst(template['dcb2_coeff_sig_pdf']*.05)),
     })
 
     # Fit model to data
-    model_final.fit(dataset_data, printlevel=printlevel)
+    model_final.fit(dataset_data, use_minos=True if args.minos else False, printlevel=printlevel)
     params = model_final.fit_result.floatParsFinal()
 
     # Plot fit result
@@ -996,20 +994,13 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
 
     # Use function to grab yields
     yields = {
-        'yield_sig' : round(sig_coeff.getValV(),2),
-        'yield_sig_err' : round(sig_coeff.getError(),2),
-        'yield_comb_bkg' : round(comb_bkg_coeff.getValV(),2),
-        'yield_comb_bkg_err' : round(comb_bkg_coeff.getError(),2),
-        'yield_part_bkg' : round(part_bkg_coeff.getValV(),2),
-        'yield_part_bkg_err' : round(part_bkg_coeff.getError(),2),
-        'yield_part_bkg_kstar' : round(part_bkg_coeff.getValV() * kstar_yield_frac,2),
-        'yield_part_bkg_kstar_err' : round(part_bkg_coeff.getError(),2),
-        'yield_part_bkg_kstar_pion' : round(part_bkg_coeff.getValV() * kstar_pion_yield_frac,2),
-        'yield_part_bkg_kstar_pion_err' : round(part_bkg_coeff.getError() * kstar_pion_yield_frac,2),
-        'yield_part_bkg_k0star_kaon' : round(part_bkg_coeff.getValV() * k0star_kaon_yield_frac,2),
-        'yield_part_bkg_k0star_kaon_err' : round(part_bkg_coeff.getError() * k0star_kaon_yield_frac,2),
-        'yield_part_bkg_k0star_pion' : round(part_bkg_coeff.getValV() * k0star_pion_yield_frac,2),
-        'yield_part_bkg_k0star_pion_err' : round(part_bkg_coeff.getError() * k0star_pion_yield_frac,2),
+        'yield_sig' : (round(sig_coeff.getValV(),2), round(sig_coeff.getError(),2)),
+        'yield_comb_bkg' : (round(comb_bkg_coeff.getValV(),2), round(comb_bkg_coeff.getError(),2)),
+        'yield_part_bkg' : (round(part_bkg_coeff.getValV(),2), round(part_bkg_coeff.getError(),2)),
+        'yield_part_bkg_kstar' : (round(part_bkg_coeff.getValV() * kstar_yield_frac,2), round(part_bkg_coeff.getError(),2)),
+        'yield_part_bkg_kstar_pion' : (round(part_bkg_coeff.getValV() * kstar_pion_yield_frac,2), round(part_bkg_coeff.getError() * kstar_pion_yield_frac,2)),
+        'yield_part_bkg_k0star_kaon' : (round(part_bkg_coeff.getValV() * k0star_kaon_yield_frac,2), round(part_bkg_coeff.getError() * k0star_kaon_yield_frac,2)),
+        'yield_part_bkg_k0star_pion' : (round(part_bkg_coeff.getValV() * k0star_pion_yield_frac,2), round(part_bkg_coeff.getError() * k0star_pion_yield_frac,2)),
     }
 
     if get_yields:
@@ -1058,6 +1049,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='print fitting procedure to stdout')
     parser.add_argument('-lc', '--loadcache', dest='cache', action='store_true', help='load cached templates if available')
     parser.add_argument('-t', '--toy_fit', dest='toy_fit', action='store_true', help='fit toy data in low-q2')
+    parser.add_argument('-minos', '--minos', dest='minos', action='store_true', help='use MINOS minimizer')
     args = parser.parse_args()
 
     main(args)
