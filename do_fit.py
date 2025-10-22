@@ -27,7 +27,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='sf_combined_mean')
+        _, dataset_rare = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name=dataset_params.mc_weight_branch)
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_rare, 'channel_label' : fit_params.channel_label})
@@ -86,7 +86,7 @@ def do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, 
         print('\nStarting Fit 3 - J/Psi Leakage Template\n{}'.format(50*'~'))
 
     # Import ROOT file dataset
-    _, dataset_jpsi = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.jpsi_file, weight_branch_name='sf_combined_mean')
+    _, dataset_jpsi = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, set_file=dataset_params.jpsi_file, weight_branch_name=dataset_params.mc_weight_branch)
 
     # Build Roofit model for exponential background
     model_jpsi_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_jpsi, 'channel_label' : fit_params.channel_label})
@@ -464,7 +464,7 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='sf_combined_mean')
+        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name=dataset_params.mc_weight_branch)
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_mc, 'channel_label' : fit_params.channel_label})
@@ -540,16 +540,24 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     
     mc_yield_tot = dataset_kstar_comb.sumEntries()
     
-    kstar_kaon_yield_frac = dataset_kstar_kaon.sumEntries() / mc_yield_tot
-    kstar_pion_yield_frac = dataset_kstar_pion.sumEntries() / mc_yield_tot
-    k0star_kaon_yield_frac = dataset_k0star_kaon.sumEntries() / mc_yield_tot
-    k0star_pion_yield_frac = dataset_k0star_pion.sumEntries() / mc_yield_tot
-    chic1_kaon_yield_frac = dataset_chic1_kaon.sumEntries() / mc_yield_tot
-    kstar_yield_frac = ((dataset_kstar_kaon.sumEntries() + 
-                        dataset_kstar_pion.sumEntries() +
-                        dataset_k0star_kaon.sumEntries() + 
-                        dataset_k0star_pion.sumEntries()) / 
-                        mc_yield_tot)
+    if mc_yield_tot:
+        kstar_kaon_yield_frac = dataset_kstar_kaon.sumEntries() / mc_yield_tot
+        kstar_pion_yield_frac = dataset_kstar_pion.sumEntries() / mc_yield_tot
+        k0star_kaon_yield_frac = dataset_k0star_kaon.sumEntries() / mc_yield_tot
+        k0star_pion_yield_frac = dataset_k0star_pion.sumEntries() / mc_yield_tot
+        chic1_kaon_yield_frac = dataset_chic1_kaon.sumEntries() / mc_yield_tot
+        kstar_yield_frac = ((dataset_kstar_kaon.sumEntries() + 
+                            dataset_kstar_pion.sumEntries() +
+                            dataset_k0star_kaon.sumEntries() + 
+                            dataset_k0star_pion.sumEntries()) / 
+                            mc_yield_tot)
+    else:
+        kstar_kaon_yield_frac = 0
+        kstar_pion_yield_frac = 0 
+        k0star_kaon_yield_frac = 0 
+        k0star_pion_yield_frac = 0 
+        chic1_kaon_yield_frac = 0 
+        kstar_yield_frac = 0 
 
     if args.verbose: 
         print('nEvents for B+ -> J/ψ K*+ - Kee cand = {}'.format(dataset_kstar_kaon.sumEntries()))
@@ -718,11 +726,11 @@ def do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args, 
     part_bkg_pdf_jpsipi_pion_norm = ROOT.RooRealVar('part_bkg_pdf_jpsipi_pion'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_jpsipi_pion_coeff.getVal(), 0, dataset_data.numEntries())
 
     # Renormalize signal pdf
-    _dcb1_coeff = model_final.signal_models['sig_pdf'].dcb1_coeff.getVal()
-    _dcb2_coeff = model_final.signal_models['sig_pdf'].dcb2_coeff.getVal()
-    _norm_sf = 1 / (_dcb1_coeff + _dcb2_coeff)
-    model_final.signal_models['sig_pdf'].dcb1_coeff.setVal(_dcb1_coeff * _norm_sf)
-    model_final.signal_models['sig_pdf'].dcb2_coeff.setVal(_dcb2_coeff * _norm_sf)
+    # _dcb1_coeff = model_final.signal_models['sig_pdf'].dcb1_coeff.getVal()
+    # _dcb2_coeff = model_final.signal_models['sig_pdf'].dcb2_coeff.getVal()
+    # _norm_sf = 1 / (_dcb1_coeff + _dcb2_coeff)
+    # model_final.signal_models['sig_pdf'].dcb1_coeff.setVal(_dcb1_coeff * _norm_sf)
+    # model_final.signal_models['sig_pdf'].dcb2_coeff.setVal(_dcb2_coeff * _norm_sf)
 
     # Write final fit to RooWorkspace
     if get_yields:
@@ -769,7 +777,7 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
             print('\nStarting Fit 1 - MC Signal Template\n{}'.format(50*'~'))
 
         # Import ROOT file dataset
-        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='sf_combined_mean')
+        _, dataset_mc = prepare_inputs(dataset_params, fit_params, b_mass_branch=b_mass_branch, isData=False, weight_branch_name='trigger_sf_value')
 
         # Build Roofit model for signal
         model_sig_template = FitModel({'branch' : b_mass_branch, 'dataset' : dataset_mc, 'channel_label' : fit_params.channel_label})
@@ -978,11 +986,11 @@ def do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args,
     part_bkg_pdf_norm = ROOT.RooRealVar('part_bkg_pdf'+fit_params.channel_label+'_norm', 'Number of partially reconstructed background events', part_bkg_coeff.getVal(), 0, dataset_data.numEntries())
 
     # Renormalize signal pdf
-    _dcb1_coeff = model_final.signal_models['sig_pdf'].dcb1_coeff.getVal()
-    _dcb2_coeff = model_final.signal_models['sig_pdf'].dcb2_coeff.getVal()
-    _norm_sf = 1 / (_dcb1_coeff + _dcb2_coeff)
-    model_final.signal_models['sig_pdf'].dcb1_coeff.setVal(_dcb1_coeff * _norm_sf)
-    model_final.signal_models['sig_pdf'].dcb2_coeff.setVal(_dcb2_coeff * _norm_sf)
+    # _dcb1_coeff = model_final.signal_models['sig_pdf'].dcb1_coeff.getVal()
+    # _dcb2_coeff = model_final.signal_models['sig_pdf'].dcb2_coeff.getVal()
+    # _norm_sf = 1 / (_dcb1_coeff + _dcb2_coeff)
+    # model_final.signal_models['sig_pdf'].dcb1_coeff.setVal(_dcb1_coeff * _norm_sf)
+    # model_final.signal_models['sig_pdf'].dcb2_coeff.setVal(_dcb2_coeff * _norm_sf)
 
     # Write final fit to RooWorkspace
     if get_yields:

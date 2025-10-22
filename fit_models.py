@@ -98,14 +98,14 @@ class PDFDict():
         if shape=='dcb+dcb':
             shape_dict = {
                 'dcb_coeff_ratio'  : 'DCB+DCB: Ratio of DCB components', 
-                'dcb1_coeff'  : 'DCB+DCB: DCB1 Coefficient', 
+                # 'dcb1_coeff'  : 'DCB+DCB: DCB1 Coefficient', 
                 'dcb1_mean'   : 'DCB+DCB: Mean of DCB1 component', 
                 'dcb1_sigma'  : 'DCB+DCB: Width of DCB1 component', 
                 'dcb1_alpha1' : 'DCB+DCB: Location of left transition to a power law of DCB1 component', 
                 'dcb1_n1'     : 'DCB+DCB: Exponent of left power-law tail of DCB1 component', 
                 'dcb1_alpha2' : 'DCB+DCB: Location of right transition to a power law of DCB1 component', 
                 'dcb1_n2'     : 'DCB+DCB: Exponent of right power-law tail of DCB1 component', 
-                'dcb2_coeff'  : 'DCB+DCB: DCB2 Coefficient', 
+                # 'dcb2_coeff'  : 'DCB+DCB: DCB2 Coefficient', 
                 'dcb2_mean'   : 'DCB+DCB: Mean of DCB2 component', 
                 'dcb2_sigma'  : 'DCB+DCB: Width of DCB2 component', 
                 'dcb2_alpha1' : 'DCB+DCB: Location of left transition to a power law of DCB2 component', 
@@ -313,15 +313,16 @@ class FitModel:
         self.constraints.update(constraint_dict)
 
 
-    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), param_err_tolerance=1E-5, use_minos=False):
+    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), param_err_tolerance=1E-5, use_minos=False, asym_err=False):
         fit_args = [
             dataset,
             ROOT.RooFit.Save(),
             ROOT.RooFit.Range(fit_range),
-            #ROOT.RooFit.NormRange(fit_norm_range),
+            # ROOT.RooFit.NormRange(fit_norm_range),
             printlevel,
             # ROOT.RooFit.Extended(True),
             ROOT.RooFit.Minos(True if use_minos else False),
+            ROOT.RooFit.AsymptoticError(True if asym_err else False),
         ]
 
         if self.constraints:
@@ -361,7 +362,7 @@ class FitModel:
                  stat_text_pos='right',
                  extra_text=None, 
                  file_label=None,
-                 data_error=ROOT.RooAbsData.Poisson):
+                 data_error=ROOT.RooAbsData.Auto):
 
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
@@ -379,7 +380,7 @@ class FitModel:
         frame = branch.frame(
             ROOT.RooFit.Title(' '),
             fit_range,
-            #fit_norm_range,
+            # fit_norm_range,
         )
 
         leg = ROOT.TLegend(.1, .6, .4, .9)
@@ -401,7 +402,7 @@ class FitModel:
         plot_model.plotOn(
             frame,
             fit_range,
-            # fit_norm_range,
+            fit_norm_range,
             ROOT.RooFit.Name(plot_model.GetName()),
             ROOT.RooFit.LineStyle(ROOT.kSolid),
             ROOT.RooFit.LineColor(next(get_color)),
