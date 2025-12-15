@@ -186,7 +186,7 @@ def write_workspace(output_params, args, model, extra_objs=[]):
     f_out.Close()
 
 
-def integrate(var, model, integral_range, coeffs=None):
+def integrate(var, model, integral_range, fit_result, coeffs=None):
     var.setRange('int_range', *integral_range)
     rangeset = ROOT.RooFit.Range('int_range')
     xset = ROOT.RooArgSet(var)
@@ -197,13 +197,38 @@ def integrate(var, model, integral_range, coeffs=None):
         final_yield = model.expectedEvents(xset)
         final_yield_err = 0
     else:
-        final_yield = np.sum([y.getVal() for y in coeffs]) if isinstance(coeffs,list) else coeffs.getVal()
-        final_yield_err = np.sqrt(np.sum([y.getError()**2 for y in coeffs])) if isinstance(coeffs,list) else coeffs.getError()
-   
+        final_yield = coeffs.getVal()
+        if isinstance(coeffs, ROOT.RooRealVar):
+            final_yield_err = coeffs.getError()
+        else:
+            final_yield_err = coeffs.getPropagatedError(fit_result)
+    
     integral = integral_unscaled.getVal() * final_yield
-    integral_err = final_yield_err*integral_unscaled.getVal()
+    integral_err = final_yield_err * integral_unscaled.getVal()
 
     return integral, integral_err
+
+
+def calculate_yields(b_mass_branch, component_map, fit_range, fit_result, custom_yield_ranges=None):
+    if custom_yield_ranges is None:
+        custom_yield_ranges = {}
+    
+    yields = {}
+    for name, comp_info in component_map.items():
+        pdf, coeff = comp_info[0], comp_info[1]
+        
+        current_range = custom_yield_ranges.get(name, fit_range)
+        
+        val, err = integrate(b_mass_branch, pdf, current_range, fit_result, coeffs=coeff)
+
+        if len(comp_info) == 3:
+            fraction = comp_info[2]
+            val *= fraction
+            err *= fraction
+        
+        yields[name] = (round(val, 2), round(err, 2))
+        
+    return yields
 
 
 def get_roofit_comp_names(frame):

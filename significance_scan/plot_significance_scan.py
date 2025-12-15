@@ -1,127 +1,96 @@
-import yaml
 import pickle
 import argparse
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path
 from scipy.optimize import curve_fit, approx_fprime
 from scipy.stats import t
 
-
-def confidence_band(model, xdata, ydata, confidence_level=0.6827, **kwargs):
-    # perform the fit
-    popt, pcov = curve_fit(model, xdata, ydata, **kwargs)
-
-    # some stuff needed below
-    ndata = len(xdata)
-    npars = len(popt)
-    p0 = np.ones( npars )
-    p0 = kwargs.get('p0', p0)
-    sigma = np.ones( ndata )
-    sigma = kwargs.get('sigma', sigma)
-    absolute_sigma = kwargs.get('absolute_sigma', False)
-
-    if not absolute_sigma :
-        SSE = ydata - model(xdata, *popt)
-        SSE = np.sum( ( SSE / sigma )**2 )
-        MSE = SSE / (ndata - npars)
-
-    x = np.asarray(xdata)
-
-    # mean predicted response
-    pr_mean = model(x, *popt)
-
-    # compute jacobian around popt
-    def model_p(p, z):
-        return model(z, *p)
-
-    npoints = len(x)
-    jac = np.array([])
-    jac_shape = (npoints, npars)
-
-    for z in x :
-        dp = approx_fprime(popt, model_p, 10e-6, z)
-        jac = np.append(jac, dp)
-
-    jac = np.reshape(jac, jac_shape)
-    jac_transposed = np.transpose(jac)
-
-    # compute predicted response variance
-    # optimized way to do equivalently
-    # np.diag(np.dot(jac, np.dot(pcov, jac_tranposed) )
-    pr_var = np.dot(pcov, jac_transposed)
-    pr_var = pr_var * jac_transposed
-    pr_var = np.sum(pr_var, axis=0)
-
-    # estimate variance with MSE
-    pr_var = MSE * pr_var
-
-    # stat factors
-    rtail = .5 + confidence_level / 2.
-    dof = ndata - npars
-    score = t.ppf(rtail, dof)
-
-    pr_band = score * np.sqrt( pr_var )
-    central = pr_mean
-    upper = pr_mean + pr_band
-    lower = pr_mean - pr_band
-
-    return upper, lower
-
-
-def lorentzian(x, x0, gamma, A, B):
-    return B + (2 * A / (np.pi * gamma)) / (1 + ((x - x0) / gamma) ** 2)
-
 def poly(x, x0, A, B):
-    return A * (x-x0)**2 + B
+    return A * (x - x0)**2 + B
+
+def confidence_band(model, popt, pcov, x_eval, xdata, ydata):
+    n_data = len(xdata)
+    n_params = len(popt)
+    
+    residuals = ydata - model(xdata, *popt)
+    mse = np.sum(residuals**2) / (n_data - n_params)
+
+    def model_p(p, x):
+        return model(x, *p)
+
+    jac = np.array([approx_fprime(popt, model_p, 1e-6, xi) for xi in x_eval])
+    pred_variance = np.einsum("ij,jk,ik->i", jac, pcov, jac)
+
+    t_score = t.ppf(0.5 + 0.6827 / 2.0, n_data - n_params)
+    delta = t_score * np.sqrt(mse * pred_variance)
+
+    y_pred = model(x_eval, *popt)
+    return y_pred, y_pred - delta, y_pred + delta
+
+def _apply_range_mask(data, key, range_tuple):
+    if not range_tuple:
+        return data
+    
+    mask = (data[key] >= range_tuple[0]) & (data[key] <= range_tuple[1])
+    return {k: v[mask] for k, v in data.items()}
+
+def _perform_fit(scores, sigs, sig_errs):
+    finite_mask = np.isfinite(scores) & np.isfinite(sigs) & np.isfinite(sig_errs)
+    
+    if np.sum(finite_mask) < 3:
+        return None
+
+    _scores, _sigs, _sig_errs = scores[finite_mask], sigs[finite_mask], sig_errs[finite_mask]
+    
+    p0 = [np.mean(_scores), -1.0, np.mean(_sigs)]
+    try:
+        popt, pcov = curve_fit(poly, _scores, _sigs, sigma=_sig_errs, p0=p0, maxfev=20000)
+        return popt, pcov, (_scores, _sigs)
+    except RuntimeError:
+        print("Fit failed, falling back to max from data points")
+        return None
 
 def significance_plotter(data, path, add_fitline=False, add_maxline=True, datarange=None, fitrange=None, show=False):
-    scores = data['score']
+    plot_data = _apply_range_mask(data, 'score', datarange)
+    scores, sigs, sig_errs = plot_data['score'], plot_data['significance'], plot_data['significance_err']
 
-    data_range_mask = np.logical_and(scores>datarange[0], scores<datarange[1]) if datarange else np.ones_like(scores, dtype=np.bool)
-    scores = scores[data_range_mask]
-    sigs = data['significance'][data_range_mask]
-    sig_errs = data['significance_err'][data_range_mask]
-    fig, ax = plt.subplots(figsize=(8,8))
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.errorbar(scores, sigs, yerr=sig_errs, label='Scan Working Points', ls='none', marker='o')
-    
-    # Fit
-    if add_fitline:
-        x_fit = np.linspace(min(scores), max(scores), 1000)
-        initial_guess = [5.0, -0.7, 6]
-       
-        fit_range_mask =  np.logical_and(scores>fitrange[0], scores<fitrange[1]) if fitrange else np.ones_like(scores, dtype=int)
-        _scores = scores[fit_range_mask]
-        _sigs = sigs[fit_range_mask]
-        _sig_errs = sig_errs[fit_range_mask]
 
-        try:
-            fit_fcn = poly
-            fcn_params, fcn_cov = curve_fit(fit_fcn, _scores, _sigs, sigma=_sig_errs, p0=initial_guess, maxfev=100000)
-            fcn_fit_up, fcn_fit_down = confidence_band(fit_fcn, _scores, _sigs, sigma=_sig_errs, confidence_level=0.6827)
-            fcn_fit = fit_fcn(x_fit, *fcn_params)
-            ax.plot(x_fit, fcn_fit, color='red', label='Fit')
-            ax.fill_between(_scores, fcn_fit_down, fcn_fit_up, color='red', alpha=0.5, edgecolor='none', label='$\pm 1$ Std Dev')
-        except RuntimeError:
-           print('Fit issue, dropping fit line') 
+    fit_results = None
+    if add_fitline:
+        fit_data = _apply_range_mask(plot_data, 'score', fitrange)
+        fit_results = _perform_fit(fit_data['score'], fit_data['significance'], fit_data['significance_err'])
+        
+        if fit_results:
+            popt, pcov, (fit_x, fit_y) = fit_results
+            x_fit = np.linspace(fit_x.min(), fit_x.max(), 500)
+            y_fit, y_low, y_up = confidence_band(poly, popt, pcov, x_fit, fit_x, fit_y)
+            ax.plot(x_fit, y_fit, color='red', label='Parabolic Fit')
+            ax.fill_between(x_fit, y_low, y_up, color='red', alpha=0.3, label=r'$\pm 1\sigma$ band')
 
     if add_maxline:
-        if add_fitline:
-            pass
-        else:
-            max_idx = np.argmax(sigs)
-            ax.axvline(scores[np.argmax(sigs)], color='red', linestyle='--', label=f'Optimized BDT Cut ({round(scores[np.argmax(sigs)],2)})')
-            ax.axhline(sigs[max_idx], color='red', linestyle='--', label=f'Optimized Significance ({round(sigs[max_idx],2)} $\pm$ {round(sig_errs[max_idx],2)})')
+        if fit_results:
+            popt, _, _ = fit_results
+            x0_fit, y0_fit = popt[0], poly(popt[0], *popt)
+            ax.axvline(x0_fit, color='red', linestyle='--', label=f'Optimized BDT Cut ({x0_fit:.2f})')
+            ax.axhline(y0_fit, color='red', linestyle='--', label=f'Optimized Significance ({y0_fit:.2f})')
+        elif len(sigs) > 0:
+            max_idx = np.nanargmax(sigs)
+            label_text = f'Optimized Significance ({sigs[max_idx]:.2f} \u00B1 {sig_errs[max_idx]:.2f})'
+            ax.axvline(scores[max_idx], color='red', linestyle='--', label=f'Optimized BDT Cut ({scores[max_idx]:.2f})')
+            ax.axhline(sigs[max_idx], color='red', linestyle='--', label=label_text)
 
-    ax.set_xlabel('BDT Score',loc='right', fontsize=18)
-    ax.set_ylabel(r'Signal Significance $(\frac{N_{Sig}}{\sqrt{N_{Sig} + N_{Bkg}}})$',loc='top',fontsize=18)
+    ax.set_xlabel('BDT Score', loc='right', fontsize=18)
+    ax.set_ylabel(r'Signal Significance $(S / \sqrt{S+B})$', loc='top', fontsize=18)
     ax.tick_params(axis='both', labelsize=14)
-    ax.legend(loc='lower right',fontsize=16)
+    ax.legend(loc='lower right', fontsize=14)
     
-    if show:
-        fig.show()
-
     fig.savefig(path, bbox_inches='tight')
+    if show:
+        plt.show()
 
 def main(args):
     if args.input_file:
@@ -142,20 +111,22 @@ def main(args):
     with open(data_file, 'rb') as f:
         score_data = pickle.load(f)
 
-    significance_plotter(score_data, output_file, datarange=args.datarange, fitrange=args.fitrange)
+    significance_plotter(
+        score_data,
+        output_file,
+        add_fitline=args.add_fitline,
+        datarange=args.datarange,
+        fitrange=args.fitrange
+    )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file', dest='input_file', 
-        type=str, help='pickle data file')
-    parser.add_argument('-o', '--output', dest='output', 
-        type=str, help='output file path')
-    parser.add_argument('-l', '--label', dest='label', 
-        type=str, help='output file label')
-    parser.add_argument('-dr', '--datarange', nargs='+', dest='datarange', 
-        type=float, help='range for data')
-    parser.add_argument('-fr', '--fitrange', nargs='+', dest='fitrange', 
-        type=float, help='range for fitting function')
-    args, _ = parser.parse_known_args()
+    parser.add_argument('-f', '--file', dest='input_file', type=str, help='pickle data file')
+    parser.add_argument('-o', '--output', dest='output', type=str, help='output file path')
+    parser.add_argument('-l', '--label', dest='label', type=str, help='output file label')
+    parser.add_argument('-fit', '--add-fitline', action='store_true', help='Fit a parabola to the significance scan')
+    parser.add_argument('-dr', '--datarange', nargs=2, dest='datarange', default=None, type=float, help='range for data')
+    parser.add_argument('-fr', '--fitrange',nargs=2, dest='fitrange', default=None, type=float, help='range for fitting function')
+    args = parser.parse_args()
 
     main(args)

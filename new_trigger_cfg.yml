@@ -1,0 +1,126 @@
+datasets:
+  data_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_data_reweighted.root
+  samesign_data_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_same_sign_electrons_reweighted.root
+  rare_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/measurement_rare.root
+  jpsi_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/measurement_jpsi.root
+  psi2s_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/measurement_psi2s.root
+  kstar_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_kstar_jpsi_kaon_reweighted.root
+  kstar_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_kstar_jpsi_pion_reweighted.root
+  k0star_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_k0star_jpsi_kaon_reweighted_fixed.root
+  k0star_jpsi_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_k0star_jpsi_pion_reweighted.root
+  chic1_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_chic1_jpsi_kaon_reweighted.root
+  jpsipi_jpsi_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_jpsipi_jpsi_pion_reweighted.root
+  kstar_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_kstar_psi2s_pion_reweighted.root
+  k0star_psi2s_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_k0star_psi2s_kaon_reweighted_fixed.root
+  k0star_psi2s_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_k0star_psi2s_pion_reweighted.root
+  kstar_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_kstar_pion_reweighted.root
+  k0star_kaon_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_k0star_kaon_reweighted_fixed.root
+  k0star_pion_file: /eos/cms/store/group/phys_bphys/DiElectronX/File_location_20_11_24/NewMethod_29_08_25/newmethod_trigger_sf_values_bdt/reweighted/measurement_k0star_pion_reweighted.root
+  tree_name: mytree
+  b_mass_branch: Bmass
+  ll_mass_branch: Mll
+  score_branch: bdt_score
+  mc_weight_branch: trigger_sf_value
+
+output:
+  output_dir: fitter_outputs/new_trigger
+
+fit:
+  bdt_score_cut: 2.99
+  regions:
+    jpsi:
+      fit_range: [4.75, 5.7]
+      ll_mass_range: [2.9, 3.2]
+      defaults:
+        dcb_coeff_ratio_sig_pdf:   [0.72, 0., 1.]
+        dcb1_coeff_sig_pdf:        [138807.66, 0., 200000]
+        dcb1_mean_sig_pdf:         [5.27, 5.1, 5.4]
+        dcb1_sigma_sig_pdf:        [0.05, 0.01, 0.5]
+        dcb1_alpha1_sig_pdf:       [3.25, 1., 10.]
+        dcb1_n1_sig_pdf:           [1.78, 0.1, 200.]
+        dcb1_alpha2_sig_pdf:       [9.99, 1., 20.]
+        dcb1_n2_sig_pdf:           [93.72, 0.1, 200.]
+        dcb2_coeff_sig_pdf:        [53337.89, 0., 200000]
+        dcb2_mean_sig_pdf:         [5.16, 5.1, 5.4]
+        dcb2_sigma_sig_pdf:        [0.07, 0.01, 0.5]
+        dcb2_alpha1_sig_pdf:       [2.77, 1., 6.]
+        dcb2_n1_sig_pdf:           [1.04, 0.5, 200.]
+        dcb2_alpha2_sig_pdf:       [1.24, .1, 6.]
+        dcb2_n2_sig_pdf:           [100., 0.5, 300.]
+        exp_slope_comb_bkg_pdf:    [-1.40, -5., 0.]
+        exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
+        kde_mirror_part_bkg_pdf: 'MirrorLeft'
+        kde_rho_part_bkg_pdf:    2
+        kde_mirror_part_bkg_pdf_kstar_kaon: 'MirrorLeft'
+        kde_rho_part_bkg_pdf_kstar_kaon:    2
+        dcb1_coeff_part_bkg_pdf_jpsipi_pion:  [821.54, 0., 20000]
+        dcb1_mean_part_bkg_pdf_jpsipi_pion:   [5.38, 5.2, 5.6]
+        dcb1_sigma_part_bkg_pdf_jpsipi_pion:  [0.08, 0.01, 0.5]
+        dcb1_alpha1_part_bkg_pdf_jpsipi_pion: [8.71, 0.1, 10.]
+        dcb1_n1_part_bkg_pdf_jpsipi_pion:     [7.38, 0.1, 100.]
+        dcb1_alpha2_part_bkg_pdf_jpsipi_pion: [0.89, 0.01, 10.]
+        dcb1_n2_part_bkg_pdf_jpsipi_pion:     [99.99, 0.1, 200.]
+        dcb2_coeff_part_bkg_pdf_jpsipi_pion:  [79.32, 0., 20000]
+        dcb2_mean_part_bkg_pdf_jpsipi_pion:   [5.36, 5.2, 5.6]
+        dcb2_sigma_part_bkg_pdf_jpsipi_pion:  [0.04, 0.01, 0.5]
+        dcb2_alpha1_part_bkg_pdf_jpsipi_pion: [1.05, .01, 6.]
+        dcb2_n1_part_bkg_pdf_jpsipi_pion:     [2.25, 0.5, 100.]
+        dcb2_alpha2_part_bkg_pdf_jpsipi_pion: [2.33, .1, 6.]
+        dcb2_n2_part_bkg_pdf_jpsipi_pion:     [0.92, 0.1, 100.]
+        dcb_coeff_part_bkg_pdf_jpsipi_pion:   [798.9, 0., 20000]
+        dcb_mean_part_bkg_pdf_jpsipi_pion:    [5.37, 5.2, 5.6]
+        dcb_sigma_part_bkg_pdf_jpsipi_pion:   [0.08, 0.01, 0.5]
+        dcb_alpha1_part_bkg_pdf_jpsipi_pion:  [1.28, 0.1, 10.]
+        dcb_n1_part_bkg_pdf_jpsipi_pion:      [100.00, 0.1, 200.]
+        dcb_alpha2_part_bkg_pdf_jpsipi_pion:  [0.89, 0.01, 10.]
+        dcb_n2_part_bkg_pdf_jpsipi_pion:      [100.00, 0.1, 200.]
+
+    psi2s:
+      fit_range: [4.75, 5.7]
+      ll_mass_range: [3.55, 3.8]
+      defaults:
+        dcb_coeff_ratio_sig_pdf:   [0.13, 0., 1.]
+        dcb1_coeff_sig_pdf:        [2454., 0., 100000]
+        dcb1_mean_sig_pdf:         [5.17, 5.1, 5.35]
+        dcb1_sigma_sig_pdf:        [0.03, 0.01, 0.5]
+        dcb1_alpha1_sig_pdf:       [2.20, 1., 6.]
+        dcb1_n1_sig_pdf:           [1.58, 0.5, 100.]
+        dcb1_alpha2_sig_pdf:       [1.36, 1., 6.]
+        dcb1_n2_sig_pdf:           [71.6, 0.5, 100.]
+        dcb2_coeff_sig_pdf:        [15658., 0., 100000]
+        dcb2_mean_sig_pdf:         [5.27, 5.1, 5.35]
+        dcb2_sigma_sig_pdf:        [0.05, 0.01, 0.5]
+        dcb2_alpha1_sig_pdf:       [5.39, 1., 6.]
+        dcb2_n1_sig_pdf:           [2.99, 0.2, 100.]
+        dcb2_alpha2_sig_pdf:       [3.06, 0.5, 6.]
+        dcb2_n2_sig_pdf:           [2.40, 0.5, 100.]
+        exp_slope_comb_bkg_pdf:    [-0.73, -3., 0.]
+        exp_slope_part_bkg_pdf:    [5., 4.0, 10.]
+        erfc_mean_part_bkg_pdf:    [5., 4.95, 5.05]
+        erfc_sigma_part_bkg_pdf:   [0.03, 0.01, 0.06]
+        kde_mirror_sig_pdf: 'NoMirror'
+        kde_rho_sig_pdf:    2
+        kde_mirror_part_bkg_pdf: 'MirrorLeft'
+        kde_rho_part_bkg_pdf:    2
+    lowq2:
+      fit_range: [4.7, 5.7]
+      ll_mass_range: [1.05, 2.45]
+      blinded: [5.1, 5.4]
+      toy_signal_yield: 96
+      defaults:
+        dcb_mean_sig_pdf:         [5.27, 5.2, 5.3]
+        dcb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
+        dcb_alpha1_sig_pdf:       [0.77, 0.5, 2.]
+        dcb_n1_sig_pdf:           [2.07, 1., 10.]
+        dcb_alpha2_sig_pdf:       [1.62, 0.5, 3.]
+        dcb_n2_sig_pdf:           [3.48, 1., 10.]
+        exp_slope_comb_bkg_pdf:   [-1., -8., 0.]
+        exp_slope_jpsi_bkg_pdf:   [-14.11, -50., 0.]
+        gauss_mean_jpsi_bkg_pdf:  [4.505, 4.3, 4.8]
+        gauss_sigma_jpsi_bkg_pdf: [.148, .02, .4]
+        kde_mirror_jpsi_bkg_pdf:  'MirrorLeft'
+        kde_rho_jpsi_bkg_pdf:      2
+        kde_mirror_part_bkg_pdf:  'MirrorLeft'
+        kde_rho_part_bkg_pdf:     2
