@@ -382,8 +382,13 @@ class FitModel:
             fit_range,
             # fit_norm_range,
         )
-
-        leg = ROOT.TLegend(.1, .6, .4, .9)
+        
+        if legend == 'ul':
+            leg = ROOT.TLegend(.1, .6, .4, .9)
+        if legend == 'll':
+            leg = ROOT.TLegend(.1, .1, .4, .4)
+        else:
+            leg = ROOT.TLegend(.1, .6, .4, .9)
 
         if bins is not None:
             if isinstance(bins,int):
