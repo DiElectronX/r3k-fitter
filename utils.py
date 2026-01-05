@@ -1,25 +1,21 @@
-import os
-import sys
-import re
+from pathlib import Path
 import yaml
-import ROOT
-from io import StringIO 
-from tqdm import tqdm
-from tqdm.contrib import tzip
 import tempfile
-import numpy as np
+import ROOT
+from tqdm import tqdm
+
 
 def makedirs(path):
     try:
-        os.makedirs(path)
+        Path(path).mkdir(parents=True, exist_ok=True)
     except OSError:
         pass
 
 
 def set_verbosity(args):
     ROOT.gROOT.SetBatch(True)
-    ROOT.gErrorIgnoreLevel = ROOT.kInfo if args.verbose else ROOT.kWarning
-    ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.INFO if args.verbose else ROOT.RooFit.ERROR)
+    ROOT.gErrorIgnoreLevel = ROOT.kInfo if args.verbose > 1 else ROOT.kWarning
+    ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.INFO if args.verbose > 1 else ROOT.RooFit.ERROR)
     printlevel = ROOT.RooFit.PrintLevel(1 if args.verbose else -1)
 
     return printlevel
@@ -27,14 +23,14 @@ def set_verbosity(args):
 
 def set_mode(dataset_params, output_params, fit_params, args):
     mode = args.mode
-    
+
     file_mode = 'rare' if ('q2' in mode) else mode
     valid_file_key = [i for i in vars(dataset_params).keys() if file_mode+'_file' in i]
-    assert len(valid_file_key)==1
-    dataset_params.mc_sig_file = getattr(dataset_params,valid_file_key[0])
+    assert len(valid_file_key) == 1, f'No valid file given for mode "{mode}"'
+    dataset_params.mc_sig_file = getattr(dataset_params, valid_file_key[0])
 
     valid_fit_key = [i for i in fit_params.regions.keys() if mode in i]
-    assert len(valid_fit_key)==1
+    assert len(valid_fit_key) == 1, f'No valid fit region given for mode "{mode}"'
     fit_params.region = fit_params.regions[valid_fit_key[0]]
     fit_params.channel_label = '_'+valid_fit_key[0]+'_region'
     fit_params.fit_range = fit_params.region['fit_range']
@@ -47,23 +43,23 @@ def set_mode(dataset_params, output_params, fit_params, args):
 def save_params(params, template_filename, fit_params, args, update_dict=None, get_params=False, just_print=False, lock_file=False):
     template = {}
     for param in params:
-        for key in fit_params.fit_defaults.keys(): 
+        for key in fit_params.fit_defaults.keys():
             if key in param.GetName():
                 template[key] = param.getVal()
 
     if args.verbose or just_print:
         print('Fitted Template Parameters:')
         for k, v in template.items():
-            print('\t'+k+' = '+str(round(v,2)))
-        
+            print('\t'+k+' = '+str(round(v, 2)))
+
         if just_print:
             return
 
-    if os.path.isfile(template_filename):
+    if Path(template_filename).is_file():
         with open(template_filename, 'r') as f:
             old_template = yaml.safe_load(f)
     else:
-        old_template = None 
+        old_template = None
 
     if old_template:
         old_template.update(template)
@@ -73,7 +69,7 @@ def save_params(params, template_filename, fit_params, args, update_dict=None, g
         update_dict.update(template)
         template = update_dict
 
-    if not lock_file: 
+    if not lock_file:
         with open(template_filename, 'w') as f:
             yaml.dump(template, f)
 
@@ -85,75 +81,143 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
     if set_file is None:
         f_in = ROOT.TFile(dataset_params.data_file if isData else dataset_params.mc_sig_file, 'READ')
     else:
-        f_in = ROOT.TFile(set_file, 'READ') 
-    
+        f_in = ROOT.TFile(set_file, 'READ')
+
     # Read branches
     tree = f_in.Get(dataset_params.tree_name if set_tree is None else set_tree)
-    # if b_mass_branch is None:
-    #     b_mass_branch = ROOT.RooRealVar(dataset_params.b_mass_branch, 'B Candidate Mass [GeV]', *fit_params.fit_range)
-    bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
+
+    # Decide whether to use BDT filtering/export
+    # Prefer explicit argument 'score_cut' when provided, otherwise fall back to fit_params.bdt_score_cut
+    bdt_cut_value = score_cut if score_cut is not None else getattr(fit_params, 'bdt_score_cut', None)
+    use_bdt = bdt_cut_value is not None
+
+    # Create RooRealVars (BDT only if in use)
+    if use_bdt:
+        bdt_branch = ROOT.RooRealVar(dataset_params.score_branch, 'BDT Score', -100., 100.)
+    else:
+        bdt_branch = None
+
     ll_mass_branch = ROOT.RooRealVar(dataset_params.ll_mass_branch, 'Di-Lepton Mass [GeV]', -100., 100.)
 
     # Take region cuts from cfg file
-    cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
-        dataset_params.score_branch,
-        fit_params.bdt_score_cut if score_cut is None else score_cut,
-        dataset_params.ll_mass_branch,
-        fit_params.region['ll_mass_range'][0],
-        dataset_params.ll_mass_branch,
-        fit_params.region['ll_mass_range'][1],
-    )
-    cutvar = ROOT.RooFormulaVar('cutvar','cutvar',cutstring,ROOT.RooArgList(bdt_branch, ll_mass_branch))
+    if use_bdt:
+        cutstring = '{}>{}&&{}>{}&&{}<{}'.format(
+            dataset_params.score_branch,
+            bdt_cut_value,
+            dataset_params.ll_mass_branch,
+            fit_params.region['ll_mass_range'][0],
+            dataset_params.ll_mass_branch,
+            fit_params.region['ll_mass_range'][1],
+        )
+        cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(bdt_branch, ll_mass_branch))
+    else:
+        cutstring = '{}>{}&&{}<{}'.format(
+            dataset_params.ll_mass_branch,
+            fit_params.region['ll_mass_range'][0],
+            dataset_params.ll_mass_branch,
+            fit_params.region['ll_mass_range'][1],
+        )
+        cutvar = ROOT.RooFormulaVar('cutvar', 'cutvar', cutstring, ROOT.RooArgList(ll_mass_branch))
 
     # Set fit ranges
-    # b_mass_branch.setRange('full', *fit_params.fit_range)
     blindDataset = (isData and (fit_params.blinded)) and not unblind
-    # if blindDataset:
-    #     assert len(fit_params.blinded)==2
-    #     sb1_range = (fit_params.fit_range[0], fit_params.blinded[0])
-    #     sb2_range = (fit_params.blinded[1], fit_params.fit_range[1])
-    #     b_mass_branch.setRange('sb1', *sb1_range)
-    #     b_mass_branch.setRange('sb2', *sb2_range)
 
     # Generate dataset and scale if specified
     if isData:
-        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
-        tmp_dataset = ROOT.RooDataHist('tmp_dataset_data'+fit_params.channel_label, 'Dataset', tree, variables, cutvar) \
-            if binned else ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', tree, variables, cutvar)
-        
+        # Build RooArgSet columns according to whether BDT is used
+        if use_bdt:
+            variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch)
+            if binned:
+                tmp_dataset = ROOT.RooDataHist('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
+            else:
+                tmp_dataset = ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
+        else:
+            variables = ROOT.RooArgSet(b_mass_branch, ll_mass_branch)
+            if binned:
+                tmp_dataset = ROOT.RooDataHist('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
+            else:
+                tmp_dataset = ROOT.RooDataSet('tmp_dataset_data'+fit_params.channel_label, 'Dataset', variables, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut(cutvar))
+
         dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
     else:
+        # Optimized Logic for MC using RDataFrame
         rdf = ROOT.RDataFrame(tree)
         weight_branch_name = dataset_params.mc_weight_branch if weight_branch_name is None else weight_branch_name
+
+        # Calculate Sum for Normalization Logic (Pre-cut application for correct norm)
+        # Note: We filter by cutstring first to get the yield in the specific region
         weight_sum = rdf.Filter(cutstring).Sum(weight_branch_name).GetValue()
-        weight_branch = ROOT.RooRealVar(weight_branch_name, 'Weight', -100., 100.)
-        variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_branch)
 
-        tmp_dataset = ROOT.RooDataHist('tmp_dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, cutvar, weight_branch.GetName()) \
-            if binned else ROOT.RooDataSet('tmp_dataset_mc'+fit_params.channel_label, 'Dataset', tree, variables, cutvar, weight_branch.GetName())
+        # Determine Scale Factor
+        final_sf = 1.0
+        if weight_norm:
+            if weight_sum == 0:
+                print("Warning: Weight sum is zero, cannot normalize.")
+                final_sf = 0
+            else:
+                final_sf = weight_norm / weight_sum
+        elif weight_sf:
+            final_sf = weight_sf
 
-        if weight_sf or weight_norm: 
-            # Calculate renormalization factor
-            assert not (weight_norm and weight_sf)
-            if weight_norm:
-                weight_sf = weight_norm / weight_sum
-
-            new_weight_branch = ROOT.RooRealVar('new_weight', 'new_weight', 1, -100000, 100000)
-            new_variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, new_weight_branch)
-            dataset = ROOT.RooDataSet(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label, 'Dataset', new_variables, new_weight_branch.GetName())
-            for i in range(0,tmp_dataset.numEntries()):
-                args = tmp_dataset.get(int(i))
-                new_b_mass_branch = args.find(dataset_params.b_mass_branch).getVal()
-                new_bdt_branch = args.find(dataset_params.score_branch).getVal()
-                new_ll_mass_branch = args.find(dataset_params.ll_mass_branch).getVal()
-                new_weight = args.find(weight_branch.GetName()).getVal()*weight_sf
-                b_mass_branch.setVal(new_b_mass_branch)
-                bdt_branch.setVal(new_bdt_branch)
-                ll_mass_branch.setVal(new_ll_mass_branch)
-                new_weight_branch.setVal(new_weight)
-                dataset.add(new_variables,new_weight)
+        # Define the Effective Weight Column
+        if final_sf != 1.0:
+            actual_weight_name = "scaled_weight"
+            # Define new weight: existing_weight * scale_factor
+            rdf = rdf.Define(actual_weight_name, f"{weight_branch_name} * {final_sf}")
         else:
+            actual_weight_name = weight_branch_name
+
+        # 4. Apply Cuts
+        rdf_cut = rdf.Filter(cutstring)
+
+        # Using a temporary file avoids the slow Python loop and memory overhead
+        with tempfile.NamedTemporaryFile(suffix='.root', delete=True) as tmp_f:
+            snapshot_opts = ROOT.RDF.RSnapshotOptions()
+            snapshot_opts.fMode = "RECREATE"
+
+            # Only export the BDT score column when BDT is in use
+            if use_bdt:
+                columns = [dataset_params.b_mass_branch, dataset_params.score_branch,
+                           dataset_params.ll_mass_branch, actual_weight_name]
+            else:
+                columns = [dataset_params.b_mass_branch,
+                           dataset_params.ll_mass_branch, actual_weight_name]
+
+            rdf_cut.Snapshot(dataset_params.tree_name, tmp_f.name, columns, snapshot_opts)
+
+            # Load back into RooFit from the temp file
+            f_tmp = ROOT.TFile.Open(tmp_f.name)
+            tree_tmp = f_tmp.Get(dataset_params.tree_name)
+
+            # Define the weight variable for RooFit
+            weight_var = ROOT.RooRealVar(actual_weight_name, 'Weight', -1e9, 1e9)
+
+            # Build RooArgSet for the RooDataSet import matching exported columns
+            if use_bdt:
+                variables = ROOT.RooArgSet(b_mass_branch, bdt_branch, ll_mass_branch, weight_var)
+            else:
+                variables = ROOT.RooArgSet(b_mass_branch, ll_mass_branch, weight_var)
+
+            if binned:
+                tmp_dataset = ROOT.RooDataHist(
+                    'tmp_dataset_mc'+fit_params.channel_label,
+                    'Dataset',
+                    variables,
+                    ROOT.RooFit.Import(tree_tmp),
+                    ROOT.RooFit.WeightVar(weight_var.GetName())
+                )
+            else:
+                tmp_dataset = ROOT.RooDataSet(
+                    'tmp_dataset_mc'+fit_params.channel_label,
+                    'Dataset',
+                    variables,
+                    ROOT.RooFit.Import(tree_tmp),
+                    ROOT.RooFit.WeightVar(weight_var.GetName())
+                )
+
+            # Clone to detach from temp file so we can close it
             dataset = tmp_dataset.Clone(('dataset_data' if isData else 'dataset_mc')+fit_params.channel_label)
+            f_tmp.Close()
 
     if blindDataset:
         dataset = dataset.reduce(ROOT.RooFit.CutRange('sb1,sb2'))
@@ -164,15 +228,15 @@ def prepare_inputs(dataset_params, fit_params, b_mass_branch=None, isData=True, 
 
 
 def format_params(params, let_float=False):
-    params = {k : (v if isinstance(v,list) else (v,)) for k, v in params.items()}
-    params = {k : (v if let_float else (v[0],)) for k, v in params.items()}
+    params = {k: (v if isinstance(v, list) else (v,)) for k, v in params.items()}
+    params = {k: (v if let_float else (v[0],)) for k, v in params.items()}
 
     return params
 
 
 def write_workspace(output_params, args, model, extra_objs=[]):
-    f_out = ROOT.TFile(os.path.join(output_params.output_dir,'workspace_'+args.mode+'.root'), 'RECREATE')
-    workspace = ROOT.RooWorkspace('workspace','workspace')
+    f_out = ROOT.TFile(str(Path(output_params.output_dir) / f'workspace_{args.mode}.root'), 'RECREATE')
+    workspace = ROOT.RooWorkspace('workspace', 'workspace')
     getattr(workspace, 'import')(model.dataset)
     getattr(workspace, 'import')(model.fit_model)
 
@@ -202,7 +266,7 @@ def integrate(var, model, integral_range, fit_result, coeffs=None):
             final_yield_err = coeffs.getError()
         else:
             final_yield_err = coeffs.getPropagatedError(fit_result)
-    
+
     integral = integral_unscaled.getVal() * final_yield
     integral_err = final_yield_err * integral_unscaled.getVal()
 
@@ -212,52 +276,37 @@ def integrate(var, model, integral_range, fit_result, coeffs=None):
 def calculate_yields(b_mass_branch, component_map, fit_range, fit_result, custom_yield_ranges=None):
     if custom_yield_ranges is None:
         custom_yield_ranges = {}
-    
+
     yields = {}
     for name, comp_info in component_map.items():
         pdf, coeff = comp_info[0], comp_info[1]
-        
+
         current_range = custom_yield_ranges.get(name, fit_range)
-        
+
         val, err = integrate(b_mass_branch, pdf, current_range, fit_result, coeffs=coeff)
 
         if len(comp_info) == 3:
             fraction = comp_info[2]
             val *= fraction
             err *= fraction
-        
+
         yields[name] = (round(val, 2), round(err, 2))
-        
+
     return yields
 
-
-def get_roofit_comp_names(frame):
-    if not hasattr(ROOT, "capturePrint"):
-        ROOT.gInterpreter.Declare("""
-        #include <sstream>
-        #include <string>
-        #include <ostream>
-
-        std::string capturePrint(RooPlot* frame) {
-            std::ostringstream oss;
-            std::streambuf* old_buf = std::cout.rdbuf(oss.rdbuf());
-            frame->Print();
-            std::cout.rdbuf(old_buf);
-            return oss.str();
-        }
-        """)
-
-    captured_output = ROOT.capturePrint(frame)
-    parentheses_content = re.search(r'\((.*?)\)', captured_output).group(1)
-    matches = [match.split("::")[-1] for match in parentheses_content.split(",")]
-    
-    return matches
 
 def loop_wrapper(iterable, args, unit='working point', title=None):
     if title:
         print(title)
-    if isinstance(iterable,zip):
+    if isinstance(iterable, zip):
         unzipped = list(iterable)
         return iterable if args.verbose else tqdm(unzipped, total=len(unzipped), unit=unit)
     else:
         return iterable if args.verbose else tqdm(iterable, total=len(iterable), unit=unit)
+
+
+def load_template_from_file(output_params, args):
+    with open(Path(output_params.output_dir) / f'fit_{args.mode}_template.yml', 'r') as file:
+        template = yaml.safe_load(file)
+
+    return template

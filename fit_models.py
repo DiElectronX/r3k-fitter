@@ -1,7 +1,14 @@
 import os
 from pathlib import Path
 import ROOT
-from utils import *
+from utils import format_params
+
+
+class PDFDictWrapper:
+    def __init__(self, name, model):
+        self.name = name
+        self.model = model
+
 
 class PDFDict():
     def __init__(self, name, shape, xvar, parameters, dataset=None, let_float=False, channel=None):
@@ -14,12 +21,11 @@ class PDFDict():
         self.channel_label = channel if channel else ''
         self.build_model(shape, xvar, self.parameters, let_float, dataset, label=self.name)
 
-
     def build_model(self, shape, xvar, parameters, let_float, dataset, label=''):
-        if shape=='gauss':
+        if shape == 'gauss':
             shape_dict = {
-                'gauss_mean' :   'Gaussian: location parameter of the Gaussian',
-                'gauss_sigma' :  'Gaussian: width parameter of the Gaussian',
+                'gauss_mean':   'Gaussian: location parameter of the Gaussian',
+                'gauss_sigma':  'Gaussian: width parameter of the Gaussian',
             }
 
             for par, desc in shape_dict.items():
@@ -35,14 +41,14 @@ class PDFDict():
                 'Gaussian pdf',
                 xvar, self.gauss_mean, self.gauss_sigma)
 
-        if shape=='dcb':
+        if shape == 'dcb':
             shape_dict = {
-                'dcb_mean' :   'DS-CB: location parameter of the Gaussian component',
-                'dcb_sigma' :  'DS-CB: width parameter of the Gaussian component',
-                'dcb_alpha1' : 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
-                'dcb_n1' :     'DS-CB: exponent of power-law tail on the left',
-                'dcb_alpha2' : 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
-                'dcb_n2' :     'DS-CB: exponent of power-law tail on the right',
+                'dcb_mean':   'DS-CB: location parameter of the Gaussian component',
+                'dcb_sigma':  'DS-CB: width parameter of the Gaussian component',
+                'dcb_alpha1': 'DS-CB: location of transition to a power law on the left, in std devs away from mean',
+                'dcb_n1':     'DS-CB: exponent of power-law tail on the left',
+                'dcb_alpha2': 'DS-CB: location of transition to a power law on the right, in std devs away from mean',
+                'dcb_n2':     'DS-CB: exponent of power-law tail on the right',
             }
 
             for par, desc in shape_dict.items():
@@ -53,19 +59,20 @@ class PDFDict():
                     *parameters[name_fmt])
                 )
 
-            self.model = ROOT.RooTwoSidedCBShape(
+            self.model = ROOT.RooCrystalBall(
                 self.name+self.channel_label,
                 'Double-sided crystal-ball pdf',
                 xvar, self.dcb_mean, self.dcb_sigma, self.dcb_alpha1, self.dcb_n1, self.dcb_alpha2, self.dcb_n2)
 
-        if shape=='cb+gauss':
+        if shape == 'cb+gauss':
             shape_dict = {
-                'gauss_mean' :  'CB+Gauss: Mean of gaussian component',
-                'gauss_sigma' : 'CB+Gauss: Width of gaussian component',
-                'cb_mean' :     'CB+Gauss: Mean of CB component',
-                'cb_sigma' :    'CB+Gauss: Width of CB component',
-                'cb_alpha' :    'CB+Gauss: Location of transition to a power law of CB component',
-                'cb_n' :        'CB+Gauss: Exponent of power-law tail of CB component',
+                'cb_gauss_coeff_ratio': 'CB+Gauss: Ratio of CB & gaussian components',
+                'gauss_mean':           'CB+Gauss: Mean of gaussian component',
+                'gauss_sigma':          'CB+Gauss: Width of gaussian component',
+                'cb_mean':              'CB+Gauss: Mean of CB component',
+                'cb_sigma':             'CB+Gauss: Width of CB component',
+                'cb_alpha':             'CB+Gauss: Location of transition to a power law of CB component',
+                'cb_n':                 'CB+Gauss: Exponent of power-law tail of CB component',
             }
 
             for par, desc in shape_dict.items():
@@ -75,6 +82,14 @@ class PDFDict():
                     desc,
                     *parameters[name_fmt])
                 )
+
+                if 'cb_gauss_coeff_ratio' in par:
+                    name_fmt_comp = par+'_comp_'+label if label else par+'_comp'
+                    setattr(self, 'cb_gauss_coeff_ratio_comp', ROOT.RooFormulaVar(
+                        name_fmt_comp+self.channel_label,
+                        '1-{}'.format(getattr(self, par).GetName()),
+                        ROOT.RooArgList(getattr(self, par)))
+                    )
 
             self.gauss_pdf = ROOT.RooGaussian(
                 'gauss_pdf'+self.channel_label,
@@ -86,32 +101,28 @@ class PDFDict():
                 'CB+Gauss: CB component',
                 xvar, self.cb_mean, self.cb_sigma, self.cb_alpha, self.cb_n)
 
-            self.cb_coeff = ROOT.RooRealVar('cb_coeff'+self.channel_label, 'CB Coefficient', 0.8, 0.0, 1.0+channel_label)
-            self.gauss_coeff = ROOT.RooRealVar('gauss_coeff'+self.channel_label, 'Gaussian Coefficient', 0.2,0.0, 1.0+channel_label)
             self.model = ROOT.RooAddPdf(
-                 self.name+self.channel_label,
+                self.name+self.channel_label,
                 'CB+Gauss',
-                 ROOT.RooArgList(self.cb_pdf, self.gauss_pdf),
-                 ROOT.RooArgList(self.cb_coeff, self.gauss_coeff)
+                ROOT.RooArgList(self.cb_pdf, self.gauss_pdf),
+                ROOT.RooArgList(self.cb_gauss_coeff_ratio, self.cb_gauss_coeff_ratio_comp)
             )
 
-        if shape=='dcb+dcb':
+        if shape == 'dcb+dcb':
             shape_dict = {
-                'dcb_coeff_ratio'  : 'DCB+DCB: Ratio of DCB components', 
-                # 'dcb1_coeff'  : 'DCB+DCB: DCB1 Coefficient', 
-                'dcb1_mean'   : 'DCB+DCB: Mean of DCB1 component', 
-                'dcb1_sigma'  : 'DCB+DCB: Width of DCB1 component', 
-                'dcb1_alpha1' : 'DCB+DCB: Location of left transition to a power law of DCB1 component', 
-                'dcb1_n1'     : 'DCB+DCB: Exponent of left power-law tail of DCB1 component', 
-                'dcb1_alpha2' : 'DCB+DCB: Location of right transition to a power law of DCB1 component', 
-                'dcb1_n2'     : 'DCB+DCB: Exponent of right power-law tail of DCB1 component', 
-                # 'dcb2_coeff'  : 'DCB+DCB: DCB2 Coefficient', 
-                'dcb2_mean'   : 'DCB+DCB: Mean of DCB2 component', 
-                'dcb2_sigma'  : 'DCB+DCB: Width of DCB2 component', 
-                'dcb2_alpha1' : 'DCB+DCB: Location of left transition to a power law of DCB2 component', 
-                'dcb2_n1'     : 'DCB+DCB: Exponent of left power-law tail of DCB2 component', 
-                'dcb2_alpha2' : 'DCB+DCB: Location of right transition to a power law of DCB2 component', 
-                'dcb2_n2'     : 'DCB+DCB: Exponent of right power-law tail of DCB2 component', 
+                'dcb_coeff_ratio': 'DCB+DCB: Ratio of DCB components',
+                'dcb1_mean':       'DCB+DCB: Mean of DCB1 component',
+                'dcb1_sigma':      'DCB+DCB: Width of DCB1 component',
+                'dcb1_alpha1':     'DCB+DCB: Location of left transition to a power law of DCB1 component',
+                'dcb1_n1':         'DCB+DCB: Exponent of left power-law tail of DCB1 component',
+                'dcb1_alpha2':     'DCB+DCB: Location of right transition to a power law of DCB1 component',
+                'dcb1_n2':         'DCB+DCB: Exponent of right power-law tail of DCB1 component',
+                'dcb2_mean':       'DCB+DCB: Mean of DCB2 component',
+                'dcb2_sigma':      'DCB+DCB: Width of DCB2 component',
+                'dcb2_alpha1':     'DCB+DCB: Location of left transition to a power law of DCB2 component',
+                'dcb2_n1':         'DCB+DCB: Exponent of left power-law tail of DCB2 component',
+                'dcb2_alpha2':     'DCB+DCB: Location of right transition to a power law of DCB2 component',
+                'dcb2_n2':         'DCB+DCB: Exponent of right power-law tail of DCB2 component',
             }
 
             for par, desc in shape_dict.items():
@@ -122,44 +133,43 @@ class PDFDict():
                     desc,
                     *parameters[name_fmt])
                 )
-            
+
                 if 'dcb_coeff_ratio' in par:
                     name_fmt_comp = par+'_comp_'+label if label else par+'_comp'
                     setattr(self, 'dcb_coeff_ratio_comp', ROOT.RooFormulaVar(
                         name_fmt_comp+self.channel_label,
-                        '1-{}'.format(getattr(self,par).GetName()),
-                        ROOT.RooArgList(getattr(self,par)))
+                        '1-{}'.format(getattr(self, par).GetName()),
+                        ROOT.RooArgList(getattr(self, par)))
                     )
 
-            self.dcb1_pdf = ROOT.RooTwoSidedCBShape(
+            self.dcb1_pdf = ROOT.RooCrystalBall(
                 'dcb1_pdf'+self.channel_label,
                 'DCB+DCB: DCB1 component',
                 xvar, self.dcb1_mean, self.dcb1_sigma, self.dcb1_alpha1, self.dcb1_n1, self.dcb1_alpha2, self.dcb1_n2)
 
-            self.dcb2_pdf = ROOT.RooTwoSidedCBShape(
+            self.dcb2_pdf = ROOT.RooCrystalBall(
                 'dcb2_pdf'+self.channel_label,
                 'DCB+DCB: DCB2 component',
                 xvar, self.dcb2_mean, self.dcb2_sigma, self.dcb2_alpha1, self.dcb2_n1, self.dcb2_alpha2, self.dcb2_n2)
 
-            #self.dcb1_coeff = ROOT.RooRealVar('dcb1_coeff'+self.channel_label, 'DCB1 Coefficient',1., 0.0, 1000000.)
-            #self.dcb2_coeff = ROOT.RooRealVar('dcb2_coeff'+self.channel_label, 'DCB2 Coefficient',1., 0.0, 1000000.)
             self.model = ROOT.RooAddPdf(
                 self.name+self.channel_label,
                 'DCB+DCB',
-                 ROOT.RooArgList(self.dcb1_pdf, self.dcb2_pdf),
-                 ROOT.RooArgList(self.dcb_coeff_ratio, self.dcb_coeff_ratio_comp)
+                ROOT.RooArgList(self.dcb1_pdf, self.dcb2_pdf),
+                ROOT.RooArgList(self.dcb_coeff_ratio, self.dcb_coeff_ratio_comp)
             )
 
-        if shape=='cb+cb':
+        if shape == 'cb+cb':
             shape_dict = {
-                'cb1_mean'  : 'CB+CB: Mean of CB1 component', 
-                'cb1_sigma' : 'CB+CB: Width of CB1 component', 
-                'cb1_alpha' : 'CB+CB: Location of transition to a power law of CB1 component', 
-                'cb1_n'     : 'CB+CB: Exponent of power-law tail of CB1 component', 
-                'cb2_mean'  : 'CB+CB: Mean of CB2 component', 
-                'cb2_sigma' : 'CB+CB: Width of CB2 component', 
-                'cb2_alpha' : 'CB+CB: Location of transition to a power law of CB2 component', 
-                'cb2_n'     : 'CB+CB: Exponent of power-law tail of CB2 component', 
+                'cb_coeff_ratio': 'CB+CB: Ratio of CB components',
+                'cb1_mean':       'CB+CB: Mean of CB1 component',
+                'cb1_sigma':      'CB+CB: Width of CB1 component',
+                'cb1_alpha':      'CB+CB: Location of transition to a power law of CB1 component',
+                'cb1_n':          'CB+CB: Exponent of power-law tail of CB1 component',
+                'cb2_mean':       'CB+CB: Mean of CB2 component',
+                'cb2_sigma':      'CB+CB: Width of CB2 component',
+                'cb2_alpha':      'CB+CB: Location of transition to a power law of CB2 component',
+                'cb2_n':          'CB+CB: Exponent of power-law tail of CB2 component',
             }
 
             for par, desc in shape_dict.items():
@@ -169,6 +179,14 @@ class PDFDict():
                     desc,
                     *parameters[name_fmt])
                 )
+
+                if 'cb_coeff_ratio' in par:
+                    name_fmt_comp = par+'_comp_'+label if label else par+'_comp'
+                    setattr(self, 'cb_coeff_ratio_comp', ROOT.RooFormulaVar(
+                        name_fmt_comp+self.channel_label,
+                        '1-{}'.format(getattr(self, par).GetName()),
+                        ROOT.RooArgList(getattr(self, par)))
+                    )
 
             self.cb1_pdf = ROOT.RooCBShape(
                 'cb1_pdf'+self.channel_label,
@@ -180,18 +198,16 @@ class PDFDict():
                 'CB+CB: CB2 component',
                 xvar, self.cb2_mean, self.cb2_sigma, self.cb2_alpha, self.cb2_n)
 
-            self.cb1_coeff = ROOT.RooRealVar('cb1_coeff'+self.channel_label, 'CB1 Coefficient',1., 0.0, 1000000.)
-            self.cb2_coeff = ROOT.RooRealVar('cb2_coeff'+self.channel_label, 'CB2 Coefficient',1., 0.0, 1000000.)
             self.model = ROOT.RooAddPdf(
                 self.name+self.channel_label,
                 'CB+CB',
-                 ROOT.RooArgList(self.cb1_pdf, self.cb2_pdf),
-                 ROOT.RooArgList(self.cb1_coeff, self.cb2_coeff)
+                ROOT.RooArgList(self.cb1_pdf, self.cb2_pdf),
+                ROOT.RooArgList(self.cb_coeff_ratio, self.cb_coeff_ratio_comp)
             )
 
-        if shape=='exp':
+        if shape == 'exp':
             shape_dict = {
-                'exp_slope' :   'Exp: slope of exponential',
+                'exp_slope': 'Exp: slope of exponential',
             }
 
             for par, desc in shape_dict.items():
@@ -204,11 +220,11 @@ class PDFDict():
 
             self.model = ROOT.RooExponential(self.name+self.channel_label, 'Exponential PDF', xvar, self.exp_slope)
 
-        if shape=='poly':
+        if shape == 'poly':
             n_polypars = sum('poly_a' in s for s in parameters.keys())
-            shape_dict = {'poly_a{}'.format(i) : 'Poly: {}th coeff.'.format(i) for i in range(n_polypars)}
-            shape_dict.update({'poly_offset' : 'Poly: x-axis offset'})
-            
+            shape_dict = {'poly_a{}'.format(i): 'Poly: {}th coeff.'.format(i) for i in range(n_polypars)}
+            shape_dict.update({'poly_offset': 'Poly: x-axis offset'})
+
             model_pars = []
             for par, desc in shape_dict.items():
                 name_fmt = par+'_'+label if label else par
@@ -220,15 +236,13 @@ class PDFDict():
                 setattr(self, par, roovar)
                 model_pars.append(roovar)
 
-            diff = ROOT.RooFormulaVar('diff','{}-{}'.format(xvar.GetName(), self.poly_offset.GetName()), ROOT.RooArgList(xvar, self.poly_offset))
-
             self.model = ROOT.RooPolynomial(self.name+self.channel_label, 'Exponential PDF', xvar, ROOT.RooArgList(*model_pars))
 
-        if shape=='generic':
+        if shape == 'generic':
             shape_dict = {
-                'exp_slope'   : 'Generic (exp*erfc): slope of exponential', 
-                'erfc_mean'   : 'Generic (exp*erfc): mean of error function', 
-                'erfc_sigma'  : 'Generic (exp*erfc): width of error function', 
+                'exp_slope':  'Generic (exp*erfc): slope of exponential',
+                'erfc_mean':  'Generic (exp*erfc): mean of error function',
+                'erfc_sigma': 'Generic (exp*erfc): width of error function',
             }
 
             for par, desc in shape_dict.items():
@@ -243,15 +257,15 @@ class PDFDict():
             self.model = ROOT.RooGenericPdf(
                 self.name+self.channel_label,
                 'Generic PDF (exp*erfc)',
-                function,ROOT.RooArgSet(xvar, self.erfc_mean, self.erfc_sigma, self.exp_slope)
+                function, ROOT.RooArgSet(xvar, self.erfc_mean, self.erfc_sigma, self.exp_slope)
             )
 
-        if shape=='kde':
+        if shape == 'kde':
             assert dataset is not None, 'Dataset required for KDE initilization'
             name_fmt = 'kde_mirror_'+label if label else 'kde_mirror'
             kde_mirror = getattr(ROOT.RooKeysPdf, *parameters[name_fmt])
             name_fmt = 'kde_rho_'+label if label else 'kde_rho'
-            self.model = ROOT.RooKeysPdf(self.name+self.channel_label, 'Kernel Density Estimate PDF', xvar, dataset, kde_mirror,*parameters[name_fmt])
+            self.model = ROOT.RooKeysPdf(self.name+self.channel_label, 'Kernel Density Estimate PDF', xvar, dataset, kde_mirror, *parameters[name_fmt])
 
 
 class FitModel:
@@ -270,48 +284,81 @@ class FitModel:
 
         assert self.branch is not None, "Must define variable for fit"
 
+    def __repr__(self):
+        newline = '\n'
+        items = [f'    {k}={v!r}' for k, v in self.__dict__.items()]
+        return f"{self.__class__.__name__}(\n{f',{newline}'.join(items)}\n)"
 
     def add_signal_model(self, *args, **kwds):
-        if len(args)==2 and isinstance(args[0], str) and isinstance(args[1], PDFDict):
+        if len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], (PDFDict, PDFDictWrapper)):
             self.add_signal_model_from_object(*args, **kwds)
         else:
             self.add_signal_model_from_scratch(*args, **kwds)
 
-
-    def add_signal_model_from_scratch(self, name, shape, parameters, let_float=True):
+    def add_signal_model_from_scratch(self, name, shape, parameters, let_float=True, dataset=None):
         fit_params = format_params(parameters, let_float)
-        sig_model = PDFDict(name, shape, self.branch, fit_params, self.dataset, let_float, self.channel_label)
+        ds_to_use = dataset if dataset is not None else self.dataset
+        sig_model = PDFDict(name, shape, self.branch, fit_params, ds_to_use, let_float, self.channel_label)
         self.signal_models[name] = sig_model
         setattr(self, sig_model.name, sig_model.model)
-
 
     def add_signal_model_from_object(self, name, model_dict):
         self.signal_models[name] = model_dict
         setattr(self, name, model_dict.model)
 
-
     def add_background_model(self, *args, **kwds):
-        if len(args)==2 and isinstance(args[0], str) and isinstance(args[1], PDFDict):
+        if len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], (PDFDict, PDFDictWrapper)):
             self.add_background_model_from_object(*args, **kwds)
         else:
             self.add_background_model_from_scratch(*args, **kwds)
 
-
-    def add_background_model_from_scratch(self, name, shape, parameters, let_float=True):
+    def add_background_model_from_scratch(self, name, shape, parameters, let_float=True, dataset=None):
         fit_params = format_params(parameters, let_float)
-        bkg_model = PDFDict(name, shape, self.branch, fit_params, self.dataset, let_float, self.channel_label)
+        ds_to_use = dataset if dataset is not None else self.dataset
+        bkg_model = PDFDict(name, shape, self.branch, fit_params, ds_to_use, let_float, self.channel_label)
         self.background_models[name] = bkg_model
         setattr(self, bkg_model.name, bkg_model.model)
-
 
     def add_background_model_from_object(self, name, model_dict):
         self.background_models[name] = model_dict
         setattr(self, name, model_dict.model)
 
+    def set_yield(self, model_name, val, min_val, max_val):
+        if model_name in self.signal_models:
+            wrapper = self.signal_models[model_name]
+        elif model_name in self.background_models:
+            wrapper = self.background_models[model_name]
+        else:
+            raise KeyError(f"Model '{model_name}' not found in FitModel. Did you add it first?")
+
+        coeff_name = f"{model_name}_coeff{self.channel_label}"
+        wrapper.coeff = ROOT.RooRealVar(coeff_name, f"Yield for {model_name}", val, min_val, max_val)
+
+        return wrapper.coeff
 
     def add_constraints(self, constraint_dict):
         self.constraints.update(constraint_dict)
 
+    def build_model(self, name='pdf_sum_final', title='Total Model'):
+        pdf_list = ROOT.RooArgList()
+        coeff_list = ROOT.RooArgList()
+
+        def add_components(model_dict):
+            for key, wrapper in model_dict.items():
+                # Only include models that have a yield attached
+                if hasattr(wrapper, 'coeff'):
+                    pdf_list.add(wrapper.model)
+                    coeff_list.add(wrapper.coeff)
+
+        add_components(self.signal_models)
+        add_components(self.background_models)
+
+        if pdf_list.getSize() == 0:
+            raise RuntimeError("build_total_pdf failed: No components found with set_yield(). Cannot build empty PDF.")
+
+        self.fit_model = ROOT.RooAddPdf(name, title, pdf_list, coeff_list)
+
+        return self.fit_model
 
     def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), param_err_tolerance=1E-5, use_minos=False, asym_err=False):
         fit_args = [
@@ -346,28 +393,29 @@ class FitModel:
             elif abs(val - max_val) < param_err_tolerance:
                 print(f'⚠️  WARNING: Parameter "{name}" is at its upper limit ({val:.5f} ≈ {max_val:.5f})')
 
-
-    def plot_fit(self, 
-                 branch, 
-                 dataset, 
-                 output_filepath, 
-                 fit_components=[], 
-                 bins=None, 
-                 fit_range='full', 
-                 fit_norm_range='full', 
-                 yrange=None,
-                 file_formats=['pdf', 'png'], 
-                 fit_result=None, 
-                 legend=False, 
-                 stat_text_pos='right',
-                 extra_text=None, 
-                 file_label=None,
-                 data_error=ROOT.RooAbsData.Auto):
+    def plot_fit(
+        self,
+        branch,
+        dataset,
+        output_filepath,
+        fit_components=[],
+        bins=None,
+        fit_range='full',
+        fit_norm_range='full',
+        yrange=None,
+        file_formats=['pdf', 'png'],
+        fit_result=None,
+        legend=None,
+        stat_text_pos='right',
+        extra_text=None,
+        file_label=None,
+        data_error=ROOT.RooAbsData.Auto
+    ):
 
         assert self.fit_model is not None, "Must assign 'fit_model'"
         plot_model = self.fit_model
 
-        if fit_range!='full':
+        if fit_range != 'full':
             dataset = dataset.reduce(ROOT.RooFit.CutRange(fit_range))
 
         fit_range = ROOT.RooFit.Range(fit_range)
@@ -382,25 +430,30 @@ class FitModel:
             fit_range,
             # fit_norm_range,
         )
-        
-        if legend == 'ul':
-            leg = ROOT.TLegend(.1, .6, .4, .9)
-        if legend == 'll':
-            leg = ROOT.TLegend(.1, .1, .4, .4)
-        else:
-            leg = ROOT.TLegend(.1, .6, .4, .9)
+
+        match legend:
+            case 'ul':
+                leg = ROOT.TLegend(.1, .575, .4, .9)
+            case 'ur':
+                leg = ROOT.TLegend(.5, .575, .9, .9)
+            case 'll':
+                leg = ROOT.TLegend(.1, .1, .4, .4)
+            case 'lr':
+                leg = ROOT.TLegend(.5, .1, .9, .4)
+            case _:
+                leg = ROOT.TLegend(.1, .6, .4, .9)
 
         if bins is not None:
-            if isinstance(bins,int):
+            if isinstance(bins, int):
                 nbins = bins
                 bins = [bins, branch.getMin(), branch.getMax()]
             else:
                 nbins = bins[0]
             bins = ROOT.RooBinning(*bins)
-            dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()), ROOT.RooFit.Binning(bins),ROOT.RooFit.DataError(data_error))
+            dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()), ROOT.RooFit.Binning(bins), ROOT.RooFit.DataError(data_error))
         else:
-            nbins= frame.GetNbinsX()
-            dataset.plotOn(frame,ROOT.RooFit.Name(dataset.GetName()),ROOT.RooFit.DataError(data_error))
+            nbins = frame.GetNbinsX()
+            dataset.plotOn(frame, ROOT.RooFit.Name(dataset.GetName()), ROOT.RooFit.DataError(data_error))
 
         leg.AddEntry(frame.findObject(dataset.GetName()), dataset.GetTitle(), 'PE')
 
@@ -418,10 +471,10 @@ class FitModel:
         h_pull = frame.pullHist()
         frame_pull = branch.frame(ROOT.RooFit.Title(' '), fit_range)
         frame_pull.addPlotable(h_pull, 'P')
-       
-        used_comps = set() 
-        if isinstance(fit_components,list): 
+
+        if isinstance(fit_components, list):
             for comp in fit_components:
+                comp_name = f'comp_{comp.GetName()}'
                 plot_argset = ROOT.RooArgSet(comp)
                 plot_comp = ROOT.RooFit.Components(plot_argset)
                 plot_model.plotOn(
@@ -429,16 +482,20 @@ class FitModel:
                     plot_comp,
                     fit_range,
                     # fit_norm_range,
+                    ROOT.RooFit.Name(comp_name),
                     ROOT.RooFit.LineStyle(ROOT.kDashed),
                     ROOT.RooFit.LineColor(next(get_color))
                 )
-                frame_comps = get_roofit_comp_names(frame)
-                new_comp = [i for i in frame_comps if (('Comp' in i) and (i not in used_comps))]
-                assert len(new_comp) == 1
-                leg.AddEntry(frame.findObject(new_comp[0]), comp.GetTitle(), 'L')
-                used_comps.update(frame_comps)
-        elif isinstance(fit_components,dict):
-            for name,comp in fit_components.items():
+
+                comp_curve = frame.findObject(comp_name)
+                if comp_curve:
+                    leg.AddEntry(comp_curve, comp.GetTitle(), 'L')
+                else:
+                    print(f"ERROR: Could not find plotted object with name: {comp_name}")
+
+        elif isinstance(fit_components, dict):
+            for name, comp in fit_components.items():
+                comp_name = f'comp_{comp.GetName()}'
                 plot_argset = ROOT.RooArgSet(comp)
                 plot_comp = ROOT.RooFit.Components(plot_argset)
                 plot_model.plotOn(
@@ -446,23 +503,24 @@ class FitModel:
                     plot_comp,
                     fit_range,
                     fit_norm_range,
+                    ROOT.RooFit.Name(comp_name),
                     ROOT.RooFit.LineStyle(ROOT.kDashed),
                     ROOT.RooFit.LineColor(next(get_color))
                 )
-                frame_comps = get_roofit_comp_names(frame)
-                new_comp = [i for i in frame_comps if (('Comp' in i) and (i not in used_comps))]
-                assert len(new_comp) == 1
-                leg.AddEntry(frame.findObject(new_comp[0]), name, 'L')
-                used_comps.update(frame_comps)
 
+                comp_curve = frame.findObject(comp_name)
+                if comp_curve:
+                    leg.AddEntry(comp_curve, name, 'L')
+                else:
+                    print(f"ERROR: Could not find plotted object with name: {comp_name}")
 
         if fit_result is not None:
-            fit_ndf = nbins-2-len(fit_result.floatParsFinal())
             chi2 = frame.chiSquare(
                 plot_model.GetName(),
                 dataset.GetName(),
                 len(fit_result.floatParsFinal()),
             )
+            # fit_ndf = nbins-2-len(fit_result.floatParsFinal())
             # chi2_var = plot_model.createChi2(dataset)
             # pvalue = ROOT.Math.chisquared_cdf_c(chi2, fit_ndf)
             # pvalue = calculate_pvalue(branch, dataset, plot_model, fit_result)
@@ -487,16 +545,16 @@ class FitModel:
         ax_y_main = frame.GetYaxis()
         ax_x_main = frame.GetXaxis()
         ax_x_main.SetLabelOffset(3.)
-       
+
         if yrange:
             ax_y_main.SetRangeUser(*yrange)
 
         if legend:
             leg.Draw()
-        
+
         stat_text_pos_x = .48 if ('middle' in stat_text_pos) else .63
         if fit_result is not None:
-            chi2_text = ROOT.TLatex(stat_text_pos_x, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2,2)))
+            chi2_text = ROOT.TLatex(stat_text_pos_x, 0.8, '#chi^{{2}}/ndf = {}'.format(round(chi2, 2)))
             chi2_text.SetTextSize(0.06)
             chi2_text.SetNDC(ROOT.kTRUE)
             chi2_text.Draw()
@@ -527,16 +585,16 @@ class FitModel:
         ax_y_pull.SetTitle('#frac{y - y_{fit}}{#sigma_{y}}')
         ax_y_pull.SetTitleOffset(.35)
         ax_y_pull.SetNdivisions(8)
-        ax_y_pull.SetRangeUser(-5,5)
+        ax_y_pull.SetRangeUser(-5, 5)
 
         ax_y_pull.SetTitleSize(2.8*ax_y_main.GetTitleSize())
         ax_y_pull.SetLabelSize(2.8*ax_y_main.GetLabelSize())
         ax_x_pull.SetTitleSize(2.8*ax_x_main.GetTitleSize())
         ax_x_pull.SetLabelSize(2.8*ax_x_main.GetLabelSize())
-        
-        if isinstance(output_filepath,Path):
-            output_filepath = str(output_filepath)  
-        path_stem, path_ext = output_filepath.rsplit('.',1)
+
+        if isinstance(output_filepath, Path):
+            output_filepath = str(output_filepath)
+        path_stem, path_ext = output_filepath.rsplit('.', 1)
         path_stem = path_stem if file_label is None else path_stem+f'_{file_label}'
         for fmt in file_formats:
             c.SaveAs(path_stem+'.'+fmt)
