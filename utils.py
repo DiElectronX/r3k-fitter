@@ -1,6 +1,7 @@
 from pathlib import Path
 import yaml
 import tempfile
+import numpy as np
 import ROOT
 from tqdm import tqdm
 
@@ -261,11 +262,15 @@ def integrate(var, model, integral_range, fit_result, coeffs=None):
         final_yield = model.expectedEvents(xset)
         final_yield_err = 0
     else:
-        final_yield = coeffs.getVal()
-        if isinstance(coeffs, ROOT.RooRealVar):
-            final_yield_err = coeffs.getError()
+        if isinstance(coeffs, list):
+            final_yield = sum(c.getVal() for c in coeffs)
+            final_yield_err = np.sqrt(np.sum([c.getError()**2 for c in coeffs]))
         else:
-            final_yield_err = coeffs.getPropagatedError(fit_result)
+            final_yield = coeffs.getVal()
+            if isinstance(coeffs, ROOT.RooRealVar):
+                final_yield_err = coeffs.getError()
+            else:
+                final_yield_err = coeffs.getPropagatedError(fit_result)
 
     integral = integral_unscaled.getVal() * final_yield
     integral_err = final_yield_err * integral_unscaled.getVal()

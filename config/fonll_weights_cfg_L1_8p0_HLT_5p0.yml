@@ -94,8 +94,8 @@ fit:
     lowq2:
       fit_range: [4.7, 5.7]
       ll_mass_range: [1.05, 2.45]
-      blinded: [5.1, 5.4]
-      toy_signal_yield: 96
+      blinded: [5., 5.4]
+      # toy_signal_yield: 96
       defaults:
         dcb_mean_sig_pdf:         [5.27, 5.2, 5.3]
         dcb_sigma_sig_pdf:        [0.046, 0.03, 0.07]
@@ -103,7 +103,7 @@ fit:
         dcb_n1_sig_pdf:           [2.07, 1., 10.]
         dcb_alpha2_sig_pdf:       [1.62, 0.5, 3.]
         dcb_n2_sig_pdf:           [3.48, 1., 10.]
-        exp_slope_comb_bkg_pdf:   [-3., -10., 0.]
+        exp_slope_comb_bkg_pdf:   [-3., -20., 0.]
         exp_slope_jpsi_bkg_pdf:   [-14.11, -50., 0.]
         gauss_mean_jpsi_bkg_pdf:  [4.505, 4.3, 4.8]
         gauss_sigma_jpsi_bkg_pdf: [.148, .02, .4]

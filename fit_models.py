@@ -324,59 +324,70 @@ class FitModel:
         setattr(self, name, model_dict.model)
 
     def add_composite_kde_model(self, model_name, components, dataset_params, fit_params,
-                                samples_config, scale_factor_func, prepare_inputs_func, verbose=False):
+                                samples_config, scale_factor_func, prepare_inputs_func,
+                                yield_modifiers=None, verbose=False):
 
         pdf_list = ROOT.RooArgList()
         coeff_list = ROOT.RooArgList()
         component_yields = {}
         total_yield = 0
 
-        # We need a list to keep the RooConstVars alive
+        # Default to empty dict if None
+        yield_modifiers = yield_modifiers if yield_modifiers is not None else {}
+
         if not hasattr(self, 'memory_store'):
             self.memory_store = []
 
-        # Merge datasets later for the plotting step
         dataset_merged = None
 
         for name in components:
             sample_cfg = samples_config[name]
             sf = scale_factor_func(name)
 
-            # Load the component dataset
+            # Load component dataset
             file_path = getattr(dataset_params, sample_cfg['file_key'])
             _, ds_comp = prepare_inputs_func(
-                dataset_params, fit_params, isData=False, 
+                dataset_params, fit_params, isData=False,
                 b_mass_branch=self.branch,
                 set_file=file_path,
                 weight_branch_name=dataset_params.mc_weight_branch,
                 weight_sf=sf
             )
 
-            # Build Merged Dataset for plotting later
+            # Merge for plotting
             if dataset_merged is None:
                 dataset_merged = ds_comp.Clone(f'dataset_merged_{model_name}')
             else:
                 dataset_merged.append(ds_comp)
 
-            # Configure KDE parameters for this component based on defaults
+            # Name component pdf_{name}
             pdf_sub_name = f"pdf_{name}"
-            comp_params = fit_params.fit_defaults.copy()
 
-            # Map generic 'part_bkg' settings to specific 'part_bkg_component' settings
+            # Configure parameters
+            comp_params = fit_params.fit_defaults.copy()
             if f'kde_mirror_{model_name}' in comp_params:
                 comp_params[f'kde_mirror_{pdf_sub_name}'] = comp_params[f'kde_mirror_{model_name}']
             if f'kde_rho_{model_name}' in comp_params:
                 comp_params[f'kde_rho_{pdf_sub_name}'] = comp_params[f'kde_rho_{model_name}']
 
-            # Create the KDE PDF using existing logic
-            self.add_background_model_from_scratch(pdf_sub_name, 'kde', comp_params, dataset=ds_comp)
+            # Create KDE PDF
+            self.add_background_model_from_scratch(
+                pdf_sub_name, 'kde', comp_params, dataset=ds_comp
+            )
 
-            # Add to lists
             pdf_obj = getattr(self, pdf_sub_name)
             pdf_list.add(pdf_obj)
 
-            # Calculate and Store Yield
+            # Calculate Yield
             y_exp = ds_comp.sumEntries()
+
+            # Apply Yield Modifiers
+            if name in yield_modifiers:
+                scale = yield_modifiers[name]
+                if verbose:
+                    print(f"    * Up-weighting '{name}' by factor {scale:.3f} (Original N={y_exp:.2f} -> New N={y_exp*scale:.2f})")
+                y_exp *= scale
+
             total_yield += y_exp
             component_yields[name] = y_exp
 
@@ -388,10 +399,10 @@ class FitModel:
             if verbose:
                 print(f"  > Component {name:<20}: N_exp = {y_exp:.2f}")
 
-        # Construct the Sum PDF
+        # Construct Sum PDF
         sum_pdf = ROOT.RooAddPdf(model_name, f'Combined {model_name}', pdf_list, coeff_list)
 
-        # Inject into model wrapper
+        # Inject into wrapper
         wrapper = PDFDictWrapper(model_name, sum_pdf)
         self.add_background_model_from_object(model_name, wrapper)
         self.fit_model = sum_pdf
@@ -414,7 +425,7 @@ class FitModel:
     def add_constraints(self, constraint_dict):
         self.constraints.update(constraint_dict)
 
-    def build_model(self, name='pdf_sum_final', title='Total Model'):
+    def build_model(self, name='pdf_sum_final', title=None):
         pdf_list = ROOT.RooArgList()
         coeff_list = ROOT.RooArgList()
 
@@ -446,7 +457,7 @@ class FitModel:
             self.fit_model = single_pdf
             return self.fit_model
 
-        self.fit_model = ROOT.RooAddPdf(name, title, pdf_list, coeff_list)
+        self.fit_model = ROOT.RooAddPdf(self.name if name is None else name, self.name if title is None else title, pdf_list, coeff_list)
 
         return self.fit_model
 
@@ -552,10 +563,14 @@ class FitModel:
                 leg = ROOT.TLegend(.1, .575, .4, .9)
             case 'ur':
                 leg = ROOT.TLegend(.5, .575, .9, .9)
+            case 'uc':
+                leg = ROOT.TLegend(.3, .575, .7, .9)
             case 'll':
                 leg = ROOT.TLegend(.1, .1, .4, .4)
             case 'lr':
                 leg = ROOT.TLegend(.5, .1, .9, .4)
+            case 'lc':
+                leg = ROOT.TLegend(.3, .1, .7, .4)
             case _:
                 leg = ROOT.TLegend(.1, .6, .4, .9)
 
