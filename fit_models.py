@@ -1,7 +1,6 @@
-import os
 from pathlib import Path
 import ROOT
-from utils import format_params
+from utils import set_verbosity, format_params
 
 
 class PDFDictWrapper:
@@ -270,6 +269,7 @@ class PDFDict():
 
 class FitModel:
     def __init__(self, dictionary={}):
+        self.name = None
         self.branch = None
         self.dataset = None
         self.channel_label = None
@@ -323,6 +323,81 @@ class FitModel:
         self.background_models[name] = model_dict
         setattr(self, name, model_dict.model)
 
+    def add_composite_kde_model(self, model_name, components, dataset_params, fit_params,
+                                samples_config, scale_factor_func, prepare_inputs_func, verbose=False):
+
+        pdf_list = ROOT.RooArgList()
+        coeff_list = ROOT.RooArgList()
+        component_yields = {}
+        total_yield = 0
+
+        # We need a list to keep the RooConstVars alive
+        if not hasattr(self, 'memory_store'):
+            self.memory_store = []
+
+        # Merge datasets later for the plotting step
+        dataset_merged = None
+
+        for name in components:
+            sample_cfg = samples_config[name]
+            sf = scale_factor_func(name)
+
+            # Load the component dataset
+            file_path = getattr(dataset_params, sample_cfg['file_key'])
+            _, ds_comp = prepare_inputs_func(
+                dataset_params, fit_params, isData=False, 
+                b_mass_branch=self.branch,
+                set_file=file_path,
+                weight_branch_name=dataset_params.mc_weight_branch,
+                weight_sf=sf
+            )
+
+            # Build Merged Dataset for plotting later
+            if dataset_merged is None:
+                dataset_merged = ds_comp.Clone(f'dataset_merged_{model_name}')
+            else:
+                dataset_merged.append(ds_comp)
+
+            # Configure KDE parameters for this component based on defaults
+            pdf_sub_name = f"pdf_{name}"
+            comp_params = fit_params.fit_defaults.copy()
+
+            # Map generic 'part_bkg' settings to specific 'part_bkg_component' settings
+            if f'kde_mirror_{model_name}' in comp_params:
+                comp_params[f'kde_mirror_{pdf_sub_name}'] = comp_params[f'kde_mirror_{model_name}']
+            if f'kde_rho_{model_name}' in comp_params:
+                comp_params[f'kde_rho_{pdf_sub_name}'] = comp_params[f'kde_rho_{model_name}']
+
+            # Create the KDE PDF using existing logic
+            self.add_background_model_from_scratch(pdf_sub_name, 'kde', comp_params, dataset=ds_comp)
+
+            # Add to lists
+            pdf_obj = getattr(self, pdf_sub_name)
+            pdf_list.add(pdf_obj)
+
+            # Calculate and Store Yield
+            y_exp = ds_comp.sumEntries()
+            total_yield += y_exp
+            component_yields[name] = y_exp
+
+            # Create fixed coefficient
+            coeff = ROOT.RooConstVar(f"coef_{name}", f"Expected Yield {name}", y_exp)
+            coeff_list.add(coeff)
+            self.memory_store.append(coeff)
+
+            if verbose:
+                print(f"  > Component {name:<20}: N_exp = {y_exp:.2f}")
+
+        # Construct the Sum PDF
+        sum_pdf = ROOT.RooAddPdf(model_name, f'Combined {model_name}', pdf_list, coeff_list)
+
+        # Inject into model wrapper
+        wrapper = PDFDictWrapper(model_name, sum_pdf)
+        self.add_background_model_from_object(model_name, wrapper)
+        self.fit_model = sum_pdf
+
+        return total_yield, component_yields, dataset_merged
+
     def set_yield(self, model_name, val, min_val, max_val):
         if model_name in self.signal_models:
             wrapper = self.signal_models[model_name]
@@ -354,13 +429,41 @@ class FitModel:
         add_components(self.background_models)
 
         if pdf_list.getSize() == 0:
+            total_components = len(self.signal_models) + len(self.background_models)
+            if total_components == 1:
+                if len(self.signal_models) == 1:
+                    wrapper = next(iter(self.signal_models.values()))
+                else:
+                    wrapper = next(iter(self.background_models.values()))
+
+                self.fit_model = wrapper.model
+                return self.fit_model
+
             raise RuntimeError("build_total_pdf failed: No components found with set_yield(). Cannot build empty PDF.")
+
+        if pdf_list.getSize() == 1:
+            single_pdf = pdf_list.at(0)
+            self.fit_model = single_pdf
+            return self.fit_model
 
         self.fit_model = ROOT.RooAddPdf(name, title, pdf_list, coeff_list)
 
         return self.fit_model
 
-    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), param_err_tolerance=1E-5, use_minos=False, asym_err=False):
+    def get_parameter(self, name):
+        if not hasattr(self, 'fit_model') or self.fit_model is None:
+            raise RuntimeError("Cannot retrieve parameter: fit_model has not been built yet.")
+
+        # getVariables() returns a pointer to the live set of variables in the PDF
+        all_vars = self.fit_model.getVariables()
+        param = all_vars.find(name)
+
+        if not param:
+            raise ValueError(f"Parameter '{name}' not found in active fit model.")
+
+        return param
+
+    def fit(self, dataset, fit_range='full', fit_norm_range='full', printlevel=ROOT.RooFit.PrintLevel(-1), param_err_tolerance=1E-3, use_minos=False, asym_err=False):
         fit_args = [
             dataset,
             ROOT.RooFit.Save(),
@@ -373,15 +476,16 @@ class FitModel:
         ]
 
         if self.constraints:
-            constraintset = ROOT.RooArgSet()
+            # Avoid garbage collection of RooArgSet
+            self._active_constraint_set = ROOT.RooArgSet()
             for c in self.constraints.values():
-                constraintset.add(c)
+                self._active_constraint_set.add(c)
 
-            fit_args.append(ROOT.RooFit.ExternalConstraints(constraintset))
-            # fit_args.append(ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(*self.constraints.values())))
+            fit_args.append(ROOT.RooFit.ExternalConstraints(self._active_constraint_set))
 
         self.fit_result = self.fit_model.fitTo(*fit_args)
 
+        # Basic limit checking
         for param in self.fit_result.floatParsFinal():
             val = param.getVal()
             min_val = param.getMin()
@@ -389,9 +493,21 @@ class FitModel:
             name = param.GetName()
 
             if abs(val - min_val) < param_err_tolerance:
-                print(f'⚠️  WARNING: Parameter "{name}" is at its lower limit ({val:.5f} ≈ {min_val:.5f})')
+                print(f'⚠️ {self.name} WARNING: Parameter "{name}" is at its lower limit ({val:.5f} ≈ {min_val:.5f})')
             elif abs(val - max_val) < param_err_tolerance:
-                print(f'⚠️  WARNING: Parameter "{name}" is at its upper limit ({val:.5f} ≈ {max_val:.5f})')
+                print(f'⚠️  {self.name} WARNING: Parameter "{name}" is at its upper limit ({val:.5f} ≈ {max_val:.5f})')
+
+        # Fit status check
+        status = self.fit_result.status()
+        cov_qual = self.fit_result.covQual()
+
+        if not (status == 0 and cov_qual == 3):
+            print(f'\n  ❌ {self.name} FIT ISSUES:')
+            if status != 0:
+                print(f'     - Minimization Failed (Status {status})')
+            if cov_qual < 3:
+                print(f'     - Bad Covariance Matrix (Qual {cov_qual}/3)')
+            print('\n')
 
     def plot_fit(
         self,

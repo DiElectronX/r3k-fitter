@@ -310,3 +310,7 @@ def load_template_from_file(output_params, args):
         template = yaml.safe_load(file)
 
     return template
+
+
+def get_component_frac(key, component_yields, mc_yield_tot):
+    return component_yields.get(key, 0) / mc_yield_tot if mc_yield_tot > 0 else 0
