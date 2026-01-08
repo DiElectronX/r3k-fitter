@@ -1,0 +1,34 @@
+name: r3k-fitter
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.12
+  - arrow
+  - matplotlib
+  - root>=6.34
+  - scikit-learn
+  - scipy
+  - uproot-base
+  - vector
+  - voms
+  - xgboost=2.0.3
+  - xrootd
+  - yaml
+  - awkward
+  - hist
+  - mplhep
+  - numpy
+  - pyarrow>=18.0.0
+  - regex
+  - tqdm
+  - uproot
+  - pip
+  - certifi
+  - gsl
+  - boost-cpp
+  - vdt
+  - eigen
+  - tbb
+  - cmake
+  - ninja
+  - git
