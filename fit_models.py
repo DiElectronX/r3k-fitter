@@ -558,21 +558,17 @@ class FitModel:
             # fit_norm_range,
         )
 
-        match legend:
-            case 'ul':
-                leg = ROOT.TLegend(.1, .575, .4, .9)
-            case 'ur':
-                leg = ROOT.TLegend(.5, .575, .9, .9)
-            case 'uc':
-                leg = ROOT.TLegend(.3, .575, .7, .9)
-            case 'll':
-                leg = ROOT.TLegend(.1, .1, .4, .4)
-            case 'lr':
-                leg = ROOT.TLegend(.5, .1, .9, .4)
-            case 'lc':
-                leg = ROOT.TLegend(.3, .1, .7, .4)
-            case _:
-                leg = ROOT.TLegend(.1, .6, .4, .9)
+        legend_coords = {
+            'ul': (.1, .575, .4, .9),
+            'ur': (.5, .575, .9, .9),
+            'uc': (.3, .575, .7, .9),
+            'll': (.1, .1, .4, .4),
+            'lr': (.5, .1, .9, .4),
+            'lc': (.3, .1, .7, .4)
+        }
+
+        coords = legend_coords.get(legend, (.1, .6, .4, .9))
+        leg = ROOT.TLegend(*coords)
 
         if bins is not None:
             if isinstance(bins, int):

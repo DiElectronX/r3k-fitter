@@ -1344,38 +1344,37 @@ def main(args):
     output_params = argparse.Namespace(**cfg['output'])
     fit_params = argparse.Namespace(**cfg['fit'])
 
-    match args.mode:
-        case 'all':
-            args.mode = 'lowq2'
+    if args.mode == 'all':
+        # Sequential execution for 'all' mode
+        modes_to_run = [
+            ('lowq2', do_lowq2_signal_region_fit, {"toy_fit": args.toy_fit}),
+            ('jpsi', do_jpsi_control_region_fit, {}),
+            ('psi2s', do_psi2s_control_region_fit, {})
+        ]
+
+        for mode_name, fit_function, extra_kwargs in modes_to_run:
+            args.mode = mode_name
             if args.verbose:
                 print('\nRunning Fit in {} Mode\n{}'.format(args.mode, 50*'~'))
+            fit_function(dataset_params, output_params, fit_params, args, **extra_kwargs)
+
+    elif args.mode == 'lowq2':
+        if args.constrained_fit:
+            raise NotImplementedError('No full constrained fit for lowq2')
+        else:
             do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, toy_fit=args.toy_fit)
 
-            args.mode = 'jpsi'
-            if args.verbose:
-                print('\nRunning Fit in {} Mode\n{}'.format(args.mode, 50*'~'))
+    elif args.mode == 'jpsi':
+        if args.constrained_fit:
+            do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_params, args)
+        else:
             do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args)
 
-            args.mode = 'psi2s'
-            if args.verbose:
-                print('\nRunning Fit in {} Mode\n{}'.format(args.mode, 50*'~'))
+    elif args.mode == 'psi2s':
+        if args.constrained_fit:
+            raise NotImplementedError('No full constrained fit for psi2s')
+        else:
             do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args)
-
-        case 'lowq2':
-            if args.constrained_fit:
-                raise NotImplementedError('No full constrained fit for lowq2')
-            else:
-                do_lowq2_signal_region_fit(dataset_params, output_params, fit_params, args, toy_fit=args.toy_fit)
-        case 'jpsi':
-            if args.constrained_fit:
-                do_constrained_jpsi_control_region_fit(dataset_params, output_params, fit_params, args)
-            else:
-                do_jpsi_control_region_fit(dataset_params, output_params, fit_params, args)
-        case 'psi2s':
-            if args.constrained_fit:
-                raise NotImplementedError('No full constrained fit for psi2s')
-            else:
-                do_psi2s_control_region_fit(dataset_params, output_params, fit_params, args)
 
 
 if __name__ == '__main__':
