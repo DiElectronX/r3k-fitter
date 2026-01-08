@@ -240,6 +240,9 @@ python3 plot_kstar_k_scan.py -m [jpsi|psi2s|all]
 
 ```
 
+---
+
+
 ## Running Fits Through Combine
 
 **⚠️ Note:** These Combine scripts are old and may need to be updated.
@@ -271,3 +274,4 @@ Use following script to show results for combine ML fit to data. All PDF shapes 
 ```
 combine -M FitDiagnostics --plots --saveShapes --signalPdfNames='*sig*' --backgroundPdfNames='*comb_bkg*,*part_bkg*' <combine MultiDimFit fit output>
 ```
+
