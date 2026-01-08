@@ -31,7 +31,7 @@ cd .../r3k-fitter
 cmsenv
 ```
 
-### Standalone Set-Up (For Working from Laptop)
+### Standalone Set-Up
 
 This set-up is slightly more involved due to the fragility of Conda installs with ROOT (you may have to do some Conda troubleshooting based on your particular computer) and the manual compilation of Combine, but offers the user the ability to avoid unnecessary CMSSW installations and work on a local machine such as one's laptop.
 
@@ -78,8 +78,6 @@ combine --help
 cd .../r3k-fitter
 conda activate r3k-fitter
 ```
-
-Here is the comprehensive README documentation based on the codebase provided. You can append this to your existing `README.md` after your "Setting Up" section.
 
 ---
 
@@ -274,4 +272,5 @@ Use following script to show results for combine ML fit to data. All PDF shapes 
 ```
 combine -M FitDiagnostics --plots --saveShapes --signalPdfNames='*sig*' --backgroundPdfNames='*comb_bkg*,*part_bkg*' <combine MultiDimFit fit output>
 ```
+
 
