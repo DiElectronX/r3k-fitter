@@ -1,11 +1,11 @@
-name: r3k-fitter
+name: r3k-fit
 channels:
   - conda-forge
 dependencies:
   - python>=3.12
   - arrow
   - matplotlib
-  - root>=6.34
+  #- root>=6.34
   - scikit-learn
   - scipy
   - uproot-base
